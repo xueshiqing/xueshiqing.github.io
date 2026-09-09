@@ -24,6 +24,7 @@
   const BEAM_COST   = 100;         /* 一次光波消耗满格体力 */
   const STAMINA_HIT = 12;          /* 普通攻击命中一次积攒 */
   const STAMINA_KILL = 30;         /* 击杀额外积攒 */
+  const STAMINA_BOSS_HIT = 3;      /* 命中 BOSS 的少量回复（BOSS 血量厚、命中频繁） */
   const COYOTE_TIME = 0.1;         /* 离开地面后仍可起跳的宽容时间 */
   const JUMP_BUFFER = 0.12;        /* 落地前提前按跳的缓冲 */
   const DASH_TIME   = 0.26;
@@ -1188,6 +1189,7 @@
           } else if (circleRect(b.x, b.y, b.r + 2, br)) {
             damageBoss(b.damage);
             hitSpark(b.x, b.y, '#ffd84d');
+            gainStamina(STAMINA_BOSS_HIT);   /* 命中 BOSS 回复少量体力 */
             hitSomething = true;
           }
         }
@@ -1811,7 +1813,7 @@
           '<button class="btn" data-act="achievements">成就 ' + achCount + ' / ' + UG.ACHIEVEMENTS.length + '</button>' +
           '<button class="btn ghost" data-act="fullscreen">全屏模式</button>' +
           '<button class="btn ghost" data-act="music">' + (G.save.musicOn ? '🎵 音乐：开' : '🔇 音乐：关') + '</button>' +
-          '<a class="btn ghost" href="bike.html">🚲 自行车动画</a>' +
+          '<a class="btn ghost" href="https://github.com/xueshiqing/xueshiqing.github.io/issues" target="_blank" rel="noopener">💬 反馈 / 提 Issue</a>' +
         '</div>' +
         '<div class="keys">' +
           '<span><kbd>← →</kbd>移动</span><span><kbd>空格</kbd>跳跃（可二段）</span>' +
