@@ -629,7 +629,7 @@
 
     ctx.save();
     ctx.translate(x, y);
-    ctx.scale(f * 1.15, 1.15);
+    ctx.scale(f * 0.8, 0.8);
     const sq = clamp(st.squash || 0, 0, 1);
     if (sq > 0) ctx.scale(1 + sq * 0.14, 1 - sq * 0.18);
     if (blink) ctx.globalAlpha = 0.58;
@@ -698,6 +698,27 @@
         legF = { hip: 0.38, knee: 0.54, foot: 0.14 };
         armN = { up: 0.85, fore: 1.25 };
         armF = { up: 0.55, fore: 1.15 };
+        break;
+      case 'crouch':
+        bob = 9; lean = 0.22;
+        legN = { hip: 1.15, knee: 1.3, foot: 0.3 };
+        legF = { hip: -0.15, knee: 0.75, foot: -0.2 };
+        armN = { up: 1.32, fore: 0.12 };
+        armF = { up: 0.62, fore: 0.78 };
+        break;
+      case 'aimup':
+        lean = -0.04;
+        legN = { hip: 0.24, knee: 0.26, foot: 0.08 };
+        legF = { hip: -0.3, knee: 0.3, foot: -0.1 };
+        armN = { up: 2.92, fore: 0.06 };   /* 手臂竖直向上 */
+        armF = { up: 0.4, fore: 0.85 };
+        break;
+      case 'aimdown':
+        lean = 0.2;
+        legN = { hip: 0.72, knee: 1.25, foot: 0.26 };   /* 前腿收起 */
+        legF = { hip: -0.62, knee: 0.95, foot: -0.26 }; /* 后腿拖后 */
+        armN = { up: 0.98, fore: 0.12 };   /* 手臂前下方（角度 0=竖直向下） */
+        armF = { up: -0.42, fore: 0.72 };
         break;
       default:
         bob = Math.sin(t * 2.2) * 0.9;
@@ -1597,32 +1618,41 @@
 
     if (b.side === 'player') {
       if (b.kind === 'bolt') {
+        const ang = Math.atan2(b.vy || 0, b.vx || 0);
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(ang);
         /* 拖尾 */
-        const dir = b.vx < 0 ? -1 : 1;
-        const tg = ctx.createLinearGradient(x - dir * 34, y, x, y);
+        const tg = ctx.createLinearGradient(-34, 0, 0, 0);
         tg.addColorStop(0, 'rgba(79,214,255,0)');
         tg.addColorStop(1, 'rgba(120,230,255,.55)');
         ctx.fillStyle = tg;
-        ctx.fillRect(Math.min(x, x - dir * 34), y - 2.6, 34, 5.2);
+        ctx.fillRect(-34, -2.6, 34, 5.2);
         /* 弹体 */
         ctx.shadowColor = '#7fe6ff'; ctx.shadowBlur = 12;
         ctx.fillStyle = '#4fd6ff';
-        ctx.beginPath(); ctx.ellipse(x - dir * 3, y, 8, 3.4, 0, 0, TAU); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(-3, 0, 8, 3.4, 0, 0, TAU); ctx.fill();
         ctx.fillStyle = '#ffffff';
-        ctx.beginPath(); ctx.ellipse(x, y, 4.4, 2.2, 0, 0, TAU); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(0, 0, 4.4, 2.2, 0, 0, TAU); ctx.fill();
+        ctx.restore();
       } else if (b.kind === 'wave') {
-        // 斯派修姆光线
+        /* 斯派修姆光线：按方向旋转，始终拖在弹头后方 */
         const len = b.len || 260;
-        const g = ctx.createLinearGradient(x - len, y, x, y);
+        ctx.save();
+        ctx.translate(x, y);
+        if (b.rot) ctx.rotate(b.rot);
+        const g = ctx.createLinearGradient(-len, 0, 0, 0);
         g.addColorStop(0, 'rgba(79,214,255,0)');
         g.addColorStop(0.5, 'rgba(120,230,255,.55)');
         g.addColorStop(1, 'rgba(255,255,255,.95)');
         ctx.fillStyle = g;
-        ctx.fillRect(x - len, y - b.r, len, b.r * 2);
+        ctx.fillRect(-len, -b.r, len, b.r * 2);
         ctx.fillStyle = '#ffffff';
-        ctx.fillRect(x - len * 0.7, y - b.r * 0.32, len * 0.7, b.r * 0.64);
+        ctx.fillRect(-len * 0.7, -b.r * 0.32, len * 0.7, b.r * 0.64);
         ctx.shadowColor = '#4fd6ff'; ctx.shadowBlur = 18;
-        ctx.beginPath(); ctx.arc(x, y, b.r * 1.5, 0, TAU); ctx.fillStyle = 'rgba(255,255,255,.8)'; ctx.fill();
+        ctx.beginPath(); ctx.arc(0, 0, b.r * 1.5, 0, TAU);
+        ctx.fillStyle = 'rgba(255,255,255,.8)'; ctx.fill();
+        ctx.restore();
       } else if (b.kind === 'disc') {
         // 八分光轮
         ctx.translate(x, y);

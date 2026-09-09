@@ -96,6 +96,27 @@ html, body {
 }
 .hud-hp { font-family: var(--mono); font-size: 11.5px; color: var(--ink-dim); }
 
+/* 体力条：普通攻击命中积攒，满格才能放光波 */
+.hud-stamina {
+  width: 104px; height: 6px; margin-top: 5px;
+  border-radius: 99px; overflow: hidden;
+  background: rgba(6, 12, 24, .72);
+  border: 1px solid rgba(120, 190, 255, .3);
+}
+.hud-stamina i {
+  display: block; height: 100%; width: 0%;
+  border-radius: 99px;
+  background: linear-gradient(90deg, #d9a021, #ffd84d);
+  box-shadow: 0 0 8px rgba(255, 216, 77, .75);
+  transition: width .1s linear, background .2s linear;
+}
+.hud-stamina.full i {
+  background: linear-gradient(90deg, #2f9fd6, #bff2ff);
+  box-shadow: 0 0 12px rgba(79, 214, 255, .95);
+}
+.hud-stamina.full { border-color: rgba(120, 230, 255, .8); animation: stamPulse .9s ease-in-out infinite; }
+@keyframes stamPulse { 0%,100% { box-shadow: 0 0 0 rgba(79,214,255,0); } 50% { box-shadow: 0 0 12px rgba(79,214,255,.55); } }
+
 .hud-stat {
   display: flex; align-items: baseline; gap: 6px;
   padding: 5px 10px; border-radius: 9px;
@@ -197,6 +218,7 @@ html, body {
 }
 
 /* 蓄力时按钮发光 */
+.abtn.beam.empty { filter: grayscale(.85) brightness(.6); }
 .abtn.beam.charging {
   box-shadow: 0 0 26px rgba(255, 200, 60, .95), 0 0 48px rgba(255, 150, 40, .6);
   border-color: #fff0b0;

@@ -17,8 +17,15 @@
   const PLAYER_W    = 22;
   const PLAYER_H    = 50;
   const MAX_HP      = 100;
+  const CROUCH_H    = 32;          /* 趴下时的碰撞盒高度 */
   const FIRE_CD     = 0.135;
-  const BEAM_MAX    = 0.85;
+  const BEAM_MAX    = 0.8;
+  const MAX_STAMINA = 100;
+  const BEAM_COST   = 100;         /* 一次光波消耗满格体力 */
+  const STAMINA_HIT = 12;          /* 普通攻击命中一次积攒 */
+  const STAMINA_KILL = 30;         /* 击杀额外积攒 */
+  const COYOTE_TIME = 0.1;         /* 离开地面后仍可起跳的宽容时间 */
+  const JUMP_BUFFER = 0.12;        /* 落地前提前按跳的缓冲 */
   const DASH_TIME   = 0.26;
   const DASH_SPEED  = 520;
   const INVULN_TIME = 0.95;
@@ -155,6 +162,11 @@
       onGround: false,
       jumps: 0,
       hp: MAX_HP,
+      stamina: 35,
+      crouching: false,
+      aim: 'fwd',
+      coyote: 0,
+      jumpBuffer: 0,
       invuln: 0,
       fireCd: 0,
       charge: 0,
@@ -270,90 +282,132 @@
       return;
     }
 
-    /* 移动 */
+    /* ---- 姿态：趴下 / 向上瞄准 ---- */
+    const wantCrouch = I.down('down') && p.onGround && p.dashT <= 0;
+    p.crouching = wantCrouch;
+    p.h = p.crouching ? CROUCH_H : PLAYER_H;
+    p.aim = p.crouching ? 'fwd'
+          : (I.down('up') ? 'up'
+          : (!p.onGround && I.down('down') ? 'down' : 'fwd'));
+
+    /* ---- 移动（趴下时爬行） ---- */
     let ax = 0;
     if (I.down('left')) ax -= 1;
     if (I.down('right')) ax += 1;
     if (ax !== 0) p.facing = ax;
-    const target = ax * RUN_SPEED;
+    const speed = p.crouching ? RUN_SPEED * 0.42 : RUN_SPEED;
+    const target = ax * speed;
     p.vx = lerp(p.vx, target, 1 - Math.pow(0.0001, dt));
 
-    /* 跳跃 */
-    if ((I.pressed('jump') || I.pressed('up'))) {
-      if (p.onGround) {
-        p.vy = JUMP_V; p.jumps = 1; p.onGround = false;
+    /* ---- 跳跃：土狼时间 + 输入缓冲 + 可变高度 ---- */
+    if (p.coyote > 0) p.coyote -= dt;
+    if (p.jumpBuffer > 0) p.jumpBuffer -= dt;
+
+    const tryJump = () => {
+      if (p.onGround || p.coyote > 0) {
+        p.vy = JUMP_V; p.jumps = 1; p.onGround = false; p.coyote = 0; p.jumpBuffer = 0;
         UG.Audio.jump();
         UG.Particles.burst(p.x, p.y, 8, { color: '#cfe0ff', minSpeed: 30, maxSpeed: 110, maxLife: 0.3 });
-      } else if (p.jumps < 2) {
-        p.vy = DBL_JUMP_V; p.jumps = 2;
+        return true;
+      }
+      if (p.jumps < 2) {
+        p.vy = DBL_JUMP_V; p.jumps = 2; p.jumpBuffer = 0;
         UG.Audio.jump();
         UG.Particles.burst(p.x, p.y - 20, 14, {
           color: '#7fe6ff', minSpeed: 40, maxSpeed: 150, maxLife: 0.4, gravity: 60,
         });
+        return true;
       }
-    }
-    /* 松开跳跃键 → 短跳 */
-    if (I.released('jump') || I.released('up')) {
-      if (p.vy < -180) p.vy *= 0.55;
-    }
+      return false;
+    };
 
-    /* 攻击 */
+    if (I.pressed('jump')) {
+      if (!tryJump()) p.jumpBuffer = JUMP_BUFFER;   /* 落地前提前按 → 缓存 */
+    }
+    if (p.jumpBuffer > 0 && (p.onGround || p.coyote > 0)) tryJump();
+
+    /* 松键短跳 */
+    if (I.released('jump') && p.vy < -180) p.vy *= 0.55;
+
+    /* ---- 普通攻击 ---- */
     if (p.fireCd > 0) p.fireCd -= dt;
     if (I.down('fire') && p.fireCd <= 0 && !p.charging) {
       p.fireCd = FIRE_CD;
       fireBolt(p);
     }
 
-    /* 蓄力光波 */
-    if (I.down('beam')) {
+    /* ---- 蓄力光波（消耗体力） ---- */
+    const canBeam = p.stamina >= BEAM_COST;
+    if (I.down('beam') && canBeam) {
       p.charging = true;
       p.charge = Math.min(BEAM_MAX, p.charge + dt);
       if (p.charge >= BEAM_MAX && !p._beamReady) {
         p._beamReady = true;
         UG.Audio.beamReady();
       }
-      document.querySelector('.abtn.beam') && document.querySelector('.abtn.beam').classList.add('charging');
-    }
-    if (p.charging && !I.down('beam')) {
+      if (beamBtn) beamBtn.classList.add('charging');
+    } else if (p.charging && (!I.down('beam') || !canBeam)) {
       p.charging = false;
-      const ratio = p.charge / BEAM_MAX;
-      fireBeam(p, ratio);
+      if (canBeam) fireBeam(p, p.charge / BEAM_MAX);
       p.charge = 0; p._beamReady = false;
-      document.querySelector('.abtn.beam') && document.querySelector('.abtn.beam').classList.remove('charging');
+      if (beamBtn) beamBtn.classList.remove('charging');
     }
+    if (beamBtn) beamBtn.classList.toggle('empty', !canBeam);
 
-    /* 姿态 */
-    if (!p.onGround) p.pose = p.vy < 0 ? 'jump' : 'fall';
+    /* ---- 姿态选择 ---- */
+    if (p.crouching) p.pose = 'crouch';
+    else if (p.aim === 'up') p.pose = 'aimup';
+    else if (p.aim === 'down') p.pose = 'aimdown';
+    else if (!p.onGround) p.pose = p.vy < 0 ? 'jump' : 'fall';
     else if (Math.abs(p.vx) > 30) p.pose = 'run';
     else p.pose = 'idle';
     if (p.charging) p.pose = 'beam';
-    else if (p.fireCd > FIRE_CD - 0.08) p.pose = 'shoot';
+    else if (p.fireCd > FIRE_CD - 0.08 && !p.crouching && p.aim === 'fwd') p.pose = 'shoot';
     if (p.hurtT > 0) { p.hurtT -= dt; p.pose = 'hurt'; }
   }
 
   /* ------------------------------------------------------- 玩家攻击 */
   function handPos(p) {
-    return { x: p.x + p.facing * 15, y: p.y - 32 };
+    if (p.aim === 'up')   return { x: p.x + p.facing * 5, y: p.y - (p.h || PLAYER_H) - 8 };
+    if (p.aim === 'down') return { x: p.x + p.facing * 9, y: p.y - 4 };
+    return { x: p.x + p.facing * 15, y: p.y - (p.crouching ? 18 : 32) };
+  }
+
+  function aimVector(p) {
+    if (p.aim === 'up')   return { x: 0, y: -1 };
+    if (p.aim === 'down') return { x: 0, y: 1 };
+    return { x: p.facing, y: 0 };
+  }
+
+  function gainStamina(n) {
+    const p = G.player;
+    if (!p) return;
+    const was = p.stamina;
+    p.stamina = Math.min(MAX_STAMINA, p.stamina + n);
+    if (was < MAX_STAMINA && p.stamina >= BEAM_COST) UG.Audio.beamReady();
   }
 
   function fireBolt(p) {
     const h = handPos(p);
+    const v = aimVector(p);
     G.bullets.push({
       side: 'player', kind: 'bolt',
       x: h.x, y: h.y,
-      vx: p.facing * 640, vy: 0,
+      vx: v.x * 660, vy: v.y * 660,
       r: 4, damage: 7, life: 1.4, pierce: false,
+      rot: Math.atan2(v.y, v.x),
       color: '#7fe6ff',
     });
     UG.Audio.shoot();
     UG.Particles.spawn({
-      x: h.x, y: h.y, vx: -p.facing * 60, vy: rand(-20, 20),
+      x: h.x, y: h.y, vx: -v.x * 60, vy: -v.y * 60 + rand(-20, 20),
       life: 0.18, size: 3.5, color: '#bff2ff', gravity: 0,
     });
     for (let i = 0; i < 3; i++) {
       UG.Particles.spawn({
-        x: h.x + p.facing * 3, y: h.y + rand(-3, 3),
-        vx: p.facing * rand(120, 260), vy: rand(-40, 40),
+        x: h.x + v.x * 3, y: h.y + v.y * 3,
+        vx: v.x * rand(120, 260) + rand(-30, 30),
+        vy: v.y * rand(120, 260) + rand(-30, 30),
         life: rand(0.08, 0.16), size: rand(1.5, 3), color: '#ffffff', gravity: 0,
       });
     }
@@ -361,29 +415,32 @@
 
   function fireBeam(p, ratio) {
     const h = handPos(p);
-    const dmg = 14 + ratio * 42;
-    const r = 5 + ratio * 11;
+    const v = aimVector(p);
+    const dmg = 9 + ratio * 26;          /* 削弱：原 14 + 42 */
+    const r = 4 + ratio * 7;
     G.bullets.push({
       side: 'player', kind: 'wave',
       x: h.x, y: h.y,
-      vx: p.facing * 1500, vy: 0,
-      r, len: 200 + ratio * 260, damage: dmg,
-      life: 0.45, pierce: true, hitSet: new Set(),
+      vx: v.x * 1500, vy: v.y * 1500,
+      r, len: 150 + ratio * 190, damage: dmg,
+      life: 0.42, pierce: true, hitSet: new Set(),
+      rot: Math.atan2(v.y, v.x),
       color: '#4fd6ff',
     });
+    p.stamina = Math.max(0, p.stamina - BEAM_COST);
     UG.Audio.beamFire();
-    UG.shake(6 + ratio * 8, 0.3);
-    G.hitStop = 0.06;
-    for (let i = 0; i < 18; i++) {
+    UG.shake(2.5 + ratio * 2.5, 0.14);   /* 大幅减弱震屏，避免卡顿感 */
+    /* 不再有 hitStop（硬直）与后坐力（后撤） */
+    for (let i = 0; i < 14; i++) {
+      const a = Math.atan2(v.y, v.x) + rand(-0.6, 0.6);
       UG.Particles.spawn({
-        x: h.x, y: h.y + rand(-8, 8),
-        vx: p.facing * rand(80, 420), vy: rand(-90, 90),
-        life: rand(0.2, 0.5), size: rand(2, 5),
+        x: h.x, y: h.y,
+        vx: Math.cos(a) * rand(80, 380), vy: Math.sin(a) * rand(80, 380),
+        life: rand(0.2, 0.45), size: rand(2, 4.5),
         color: i % 2 ? '#ffffff' : '#7fe6ff', gravity: 0,
       });
     }
-    // 后坐力
-    p.vx -= p.facing * 120;
+    updateHud();
   }
 
   /* ============================================================
@@ -667,6 +724,7 @@
 
   function killEnemy(e, byBeam) {
     e.alive = false;
+    if (!byBeam) gainStamina(STAMINA_KILL);
     G.score += e.cfg.score;
     G.totalKills++;
     G.combo++;
@@ -1037,7 +1095,7 @@
       hideBossBar();
       UG.Audio.bigExplode();
       UG.shake(16, 1.1);
-      G.hitStop = 0.12;
+      G.hitStop = 0.08;
       UG.Particles.burst(b.x, b.y + b.h * 0.5, 60, {
         color: '#ffd84d', minSpeed: 80, maxSpeed: 460, maxLife: 1.4, maxSize: 8,
       });
@@ -1097,6 +1155,7 @@
           } else if (circleRect(b.x, b.y, b.r + 2, er)) {
             e.hp -= b.damage; e.flash = 0.08;
             hitSpark(e.x, e.y - e.h / 2, '#ffd84d');
+            gainStamina(STAMINA_HIT);      /* 普通攻击命中 → 积攒体力 */
             hitSomething = true;
             if (e.hp <= 0) killEnemy(e, false);
           }
@@ -1331,7 +1390,9 @@
     /* 玩家物理 */
     if (p.alive) {
       if (p.invuln > 0) p.invuln -= dt;
-      p.vy = clamp(p.vy + GRAVITY * dt, -2000, MAX_FALL);
+      /* 上升略轻、下落略重 —— 跳跃弧线更跟手 */
+      const gAcc = p.vy < 0 ? GRAVITY * 0.84 : GRAVITY * 1.14;
+      p.vy = clamp(p.vy + gAcc * dt, -2000, MAX_FALL);
       p.x += p.vx * dt;
       p.y += p.vy * dt;
 
@@ -1341,6 +1402,7 @@
       p.x = clamp(p.x, minX, maxX);
 
       resolveGround(p, dt);
+      if (p.onGround) p.coyote = COYOTE_TIME;
 
       /* 落地压缩 */
       if (p.onGround && !p.wasGround && p.vy > 220) {
@@ -1366,7 +1428,7 @@
         }
       }
 
-      if (p.onGround) p.jumps = 0;
+      if (p.onGround) { p.jumps = 0; }
 
       // 地面危险区（岩浆）
       if (lv.hazards && p.onGround) {
@@ -1589,6 +1651,7 @@
      HUD
      ============================================================ */
   let hudTick = 0;
+  let beamBtn = null, staminaFill = null, staminaBarEl = null;
   function updateHud() {
     hudTick++;
     if (hudTick % 3 !== 0) return;
@@ -1609,7 +1672,19 @@
     const sc = $('#hudScore');
     if (sc) sc.textContent = G.score;
 
+    /* 体力条（独立于节流，保证手感跟手） */
+    refreshStamina();
+
     updateBossBar();
+  }
+
+  function refreshStamina() {
+    const p = G.player;
+    if (!p) return;
+    if (staminaFill) staminaFill.style.width = (p.stamina / MAX_STAMINA * 100).toFixed(1) + '%';
+    const full = p.stamina >= BEAM_COST;
+    if (staminaBarEl) staminaBarEl.classList.toggle('full', full);
+    if (beamBtn) beamBtn.classList.toggle('empty', !full);
   }
 
   function setHudVisible(v) {
@@ -1712,7 +1787,8 @@
         '</div>' +
         '<div class="keys">' +
           '<span><kbd>← →</kbd>移动</span><span><kbd>空格</kbd>跳跃</span>' +
-          '<span><kbd>J</kbd>攻击</span><span><kbd>K</kbd>蓄力光波</span>' +
+          '<span><kbd>↑</kbd>向上射击</span><span><kbd>↓</kbd>趴下／下射</span>' +
+          '<span><kbd>J</kbd>攻击</span><span><kbd>K</kbd>光波（体力满）</span>' +
           '<span><kbd>L</kbd>冲刺</span><span><kbd>P</kbd>暂停</span>' +
         '</div>' +
       '</div>'
@@ -1739,7 +1815,8 @@
         '</div>' +
         '<div class="keys">' +
           '<span><kbd>← →</kbd>移动</span><span><kbd>空格</kbd>跳跃（可二段）</span>' +
-          '<span><kbd>J</kbd>能量弹</span><span><kbd>K</kbd>蓄力光波</span>' +
+          '<span><kbd>↑</kbd>向上射击</span><span><kbd>↓</kbd>趴下／空中下射</span>' +
+          '<span><kbd>J</kbd>能量弹</span><span><kbd>K</kbd>蓄力光波（需体力）</span>' +
           '<span><kbd>L</kbd>冲刺</span><span><kbd>P</kbd>暂停</span>' +
         '</div>' +
         '<p class="result-sub" style="margin-top:20px;font-size:12px">手机端请横屏，左下方向键 · 右下动作键</p>' +
@@ -1818,6 +1895,10 @@
 
     setupTouch();
 
+    beamBtn = document.querySelector('.abtn.beam');
+    staminaFill = $('#staminaFill');
+    staminaBarEl = $('#staminaBar');
+
     // 暂停按钮
     const hudRight = document.querySelector('.hud-right');
     if (hudRight && !$('#btnPause')) {
@@ -1847,7 +1928,7 @@
     requestAnimationFrame(loop);
 
     /* 调试钩子：仅在 #debug 时暴露内部状态，方便自动化测试 */
-    if (/^#(debug|shot|play|boss)/.test(location.hash)) {
+    if (/^#(debug|shot|play|boss|run|crouch|aimup)/.test(location.hash)) {
       global.__UG = { G, handleAction, spawnEnemy, damagePlayer, loadLevel, get state() { return G.state; } };
     }
   }
