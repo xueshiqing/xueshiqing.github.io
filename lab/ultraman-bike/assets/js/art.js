@@ -416,8 +416,10 @@
 
   Art.platform = function (ctx, p, level, camX, time) {
     const c = THEME_GROUND[level.theme];
-    const x = p.x - camX;
-    if (x + p.w < -20 || x > UG.VIEW.w + 20) return;
+    /* 调用方已经 translate(-camX) 进入世界坐标系，这里必须用世界坐标绘制，
+       camX 只用于视口裁剪 */
+    if (p.x + p.w < camX - 40 || p.x > camX + UG.VIEW.w + 40) return;
+    const x = p.x;
 
     if (p.type === 'crate') {
       Art.crate(ctx, x, p.y, p.w, p.h, c, p.hp);
@@ -1387,18 +1389,27 @@
      弹幕
      ============================================================ */
   Art.bullet = function (ctx, b, camX, time) {
-    const x = b.x - camX, y = b.y;
-    if (x < -30 || x > UG.VIEW.w + 30) return;
+    /* 同样处于世界坐标系内：用世界坐标绘制，camX 仅用于裁剪 */
+    const x = b.x, y = b.y;
+    if (x < camX - 60 || x > camX + UG.VIEW.w + 60) return;
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
 
     if (b.side === 'player') {
       if (b.kind === 'bolt') {
-        ctx.shadowColor = '#7fe6ff'; ctx.shadowBlur = 8;
-        ctx.fillStyle = '#dffaff';
-        ctx.beginPath(); ctx.ellipse(x, y, 6, 2.6, 0, 0, TAU); ctx.fill();
+        /* 拖尾 */
+        const dir = b.vx < 0 ? -1 : 1;
+        const tg = ctx.createLinearGradient(x - dir * 34, y, x, y);
+        tg.addColorStop(0, 'rgba(79,214,255,0)');
+        tg.addColorStop(1, 'rgba(120,230,255,.55)');
+        ctx.fillStyle = tg;
+        ctx.fillRect(Math.min(x, x - dir * 34), y - 2.6, 34, 5.2);
+        /* 弹体 */
+        ctx.shadowColor = '#7fe6ff'; ctx.shadowBlur = 12;
         ctx.fillStyle = '#4fd6ff';
-        ctx.beginPath(); ctx.ellipse(x - 4, y, 5, 1.8, 0, 0, TAU); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(x - dir * 3, y, 8, 3.4, 0, 0, TAU); ctx.fill();
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath(); ctx.ellipse(x, y, 4.4, 2.2, 0, 0, TAU); ctx.fill();
       } else if (b.kind === 'wave') {
         // 斯派修姆光线
         const len = b.len || 260;
