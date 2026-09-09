@@ -578,6 +578,49 @@
   /**
    * @param st { pose, t, facing, charge, hp, invuln }
    */
+  /* ---------------------------------------------------------------
+     主角：奥特曼（重绘版）
+     要点：银白身体 + 红色花纹（肩甲 / 胸口 V 形 / 侧腰条 / 前臂环 / 靴子）
+           头部红色鳍冠、大号黄色杏眼、胸口彩色计时器
+           所有形体带深色描边 + 渐变，避免"实心色块"的粗糙感
+     --------------------------------------------------------------- */
+  const HERO = {
+    outline: 'rgba(16,24,38,.62)',
+    silverHi: '#ffffff',
+    silverMid: '#e6eef6',
+    silverLo: '#b3c3d2',
+    silverShade: '#8b9dad',
+    silverFar: '#7e91a2',
+    redHi: '#ff6b6b',
+    redMid: '#e02323',
+    redLo: '#9c1010',
+    redFar: '#5e0e0e',
+    eyeHi: '#fffde8',
+    eyeMid: '#ffd93d',
+    eyeLo: '#f0a010',
+    rim: 'rgba(226,244,255,.85)',
+  };
+
+  /** 锥形胶囊路径（可描边可填充） */
+  function taper(ctx, x1, y1, w1, x2, y2, w2) {
+    const a = Math.atan2(y2 - y1, x2 - x1);
+    ctx.beginPath();
+    ctx.arc(x2, y2, w2 / 2, a + Math.PI / 2, a - Math.PI / 2, true);
+    ctx.arc(x1, y1, w1 / 2, a - Math.PI / 2, a + Math.PI / 2, true);
+    ctx.closePath();
+  }
+
+  function silverGrad(ctx, x0, y0, x1, y1, far) {
+    return grad(ctx, x0, y0, x1, y1, far
+      ? [[0, '#aebecd'], [0.5, '#93a6b7'], [1, HERO.silverFar]]
+      : [[0, HERO.silverHi], [0.35, HERO.silverMid], [0.78, HERO.silverLo], [1, HERO.silverShade]]);
+  }
+  function redGrad(ctx, x0, y0, x1, y1, far) {
+    return grad(ctx, x0, y0, x1, y1, far
+      ? [[0, '#a02525'], [1, HERO.redFar]]
+      : [[0, HERO.redHi], [0.45, HERO.redMid], [1, HERO.redLo]]);
+  }
+
   Art.ultraman = function (ctx, x, y, st) {
     const f = st.facing >= 0 ? 1 : -1;
     const t = st.t || 0;
@@ -591,16 +634,16 @@
     if (sq > 0) ctx.scale(1 + sq * 0.14, 1 - sq * 0.18);
     if (blink) ctx.globalAlpha = 0.58;
 
-    /* ---------------- 骨架尺寸（脚底为 0，向上为负） ---------------- */
-    const HIP = -32, SHO = -55, NECK = -59, HEADY = -67;
-    const THIGH = 16, SHIN = 16, UPPER = 13, FORE = 13;
+    /* ---------------- 骨架 ---------------- */
+    const HIP = -35, SHO = -58, HEADY = -71;
+    const THIGH = 17.5, SHIN = 17.5, UPPER = 14, FORE = 14;
 
-    /* ---------------- 姿态表 ---------------- */
+    /* ---------------- 姿态 ---------------- */
     let lean = 0.05, bob = 0;
-    let legN = { hip: 0.14, knee: 0.16, foot: 0.06 };
-    let legF = { hip: -0.16, knee: 0.18, foot: -0.06 };
-    let armN = { up: 0.28, fore: 0.55 };
-    let armF = { up: 0.22, fore: 0.62 };
+    let legN = { hip: 0.3, knee: 0.2, foot: 0.1 };
+    let legF = { hip: -0.34, knee: 0.24, foot: -0.1 };
+    let armN = { up: 0.42, fore: 0.42 };
+    let armF = { up: 0.34, fore: 0.5 };
 
     const p = t * 13.5;
     switch (pose) {
@@ -637,231 +680,388 @@
         break;
       case 'shoot':
         lean = 0.09;
-        legN = { hip: 0.26, knee: 0.36, foot: 0.1 };
-        legF = { hip: -0.32, knee: 0.46, foot: -0.12 };
+        legN = { hip: 0.36, knee: 0.4, foot: 0.14 };
+        legF = { hip: -0.46, knee: 0.5, foot: -0.16 };
         armN = { up: 1.42, fore: 0.06 };
         armF = { up: 0.62, fore: 1.05 };
         break;
       case 'beam':
         lean = -0.05;
-        legN = { hip: 0.32, knee: 0.42, foot: 0.12 };
-        legF = { hip: -0.38, knee: 0.52, foot: -0.14 };
+        legN = { hip: 0.4, knee: 0.44, foot: 0.14 };
+        legF = { hip: -0.5, knee: 0.56, foot: -0.18 };
         armN = { up: 1.18, fore: -0.2 };
         armF = { up: 0.42, fore: 0.95 };
         break;
       case 'hurt':
         lean = -0.28;
-        legN = { hip: -0.42, knee: 0.62, foot: -0.22 };
-        legF = { hip: 0.3, knee: 0.5, foot: 0.12 };
+        legN = { hip: -0.5, knee: 0.66, foot: -0.24 };
+        legF = { hip: 0.38, knee: 0.54, foot: 0.14 };
         armN = { up: 0.85, fore: 1.25 };
         armF = { up: 0.55, fore: 1.15 };
         break;
-      default: /* idle */
+      default:
         bob = Math.sin(t * 2.2) * 0.9;
-        armN = { up: 0.28, fore: 0.5 + Math.sin(t * 2.2) * 0.05 };
-        armF = { up: 0.22, fore: 0.58 + Math.sin(t * 2.2) * 0.05 };
+        armN = { up: 0.42, fore: 0.38 + Math.sin(t * 2.2) * 0.05 };
+        armF = { up: 0.34, fore: 0.46 + Math.sin(t * 2.2) * 0.05 };
     }
 
     const hipY = HIP + bob;
     const sho = {
-      x: Math.sin(lean) * (HIP - SHO) * -1,
+      x: -Math.sin(lean) * (HIP - SHO),
       y: hipY + Math.cos(lean) * (SHO - HIP),
     };
 
-    /* ---------------- 渐变色 ---------------- */
-    const silverG = grad(ctx, -10, SHO + bob, 10, HIP + bob,
-      [[0, '#ffffff'], [0.45, '#eef4f9'], [1, '#a7b7c6']]);
-    const silverFar = '#93a4b3';
-    const redG = grad(ctx, 0, SHO + bob, 0, HIP + bob,
-      [[0, '#ff6b6b'], [1, '#b81f1f']]);
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = HERO.outline;
+    ctx.lineWidth = 1;
 
     /* ---------------- 腿 ---------------- */
-    const drawLeg = (L, shade, isFar) => {
-      const hx = isFar ? -1.5 : 1.5;
+    const drawLeg = (L, isFar) => {
+      const hx = isFar ? -1.6 : 1.6;
       const kx = hx + Math.sin(L.hip) * THIGH;
       const ky = hipY + Math.cos(L.hip) * THIGH;
       const shinA = L.hip - L.knee;
       const fx = kx + Math.sin(shinA) * SHIN;
       const fy = ky + Math.cos(shinA) * SHIN;
 
-      capsule(ctx, hx, hipY, kx, ky, isFar ? 8.5 : 9.8, shade);
-      capsule(ctx, kx, ky, fx, fy, isFar ? 7 : 8, shade);
-      /* 膝甲 */
-      ctx.fillStyle = isFar ? '#8296a6' : '#cfdce7';
-      ctx.beginPath(); ctx.arc(kx, ky, isFar ? 3.6 : 4.2, 0, TAU); ctx.fill();
-      /* 大腿外侧红条：沿大腿方向 */
-      const ux = Math.sin(L.hip), uy = Math.cos(L.hip);
-      capsule(ctx, hx + ux * 3, hipY + uy * 3, hx + ux * 12, hipY + uy * 12,
-              isFar ? 8.4 : 9.6, isFar ? '#8f1a1a' : '#c81e1e');
+      /* 大腿 */
+      taper(ctx, hx, hipY, isFar ? 8.6 : 10.4, kx, ky, isFar ? 7.2 : 8.6);
+      ctx.fillStyle = silverGrad(ctx, hx - 5, hipY - 6, kx + 5, ky, isFar);
+      ctx.fill();
+      ctx.stroke();
+
+      /* 大腿外侧红条 */
+      const tu = Math.sin(L.hip), tv = Math.cos(L.hip);
+      taper(ctx, hx + tu * 4, hipY + tv * 4, isFar ? 5.4 : 6.2,
+                hx + tu * 13, hipY + tv * 13, isFar ? 5 : 5.6);
+      ctx.fillStyle = redGrad(ctx, hx, hipY, hx + 14, hipY + 14, isFar);
+      ctx.fill();
+
+      /* 小腿 */
+      taper(ctx, kx, ky, isFar ? 7.2 : 8.2, fx, fy, isFar ? 6 : 6.8);
+      ctx.fillStyle = silverGrad(ctx, kx - 4, ky, fx + 4, fy, isFar);
+      ctx.fill();
+      ctx.stroke();
+
+      /* 膝盖甲 */
+      ctx.beginPath();
+      ctx.ellipse(kx, ky, isFar ? 3.0 : 4.2, isFar ? 2.7 : 3.8, L.hip, 0, TAU);
+      ctx.fillStyle = isFar ? '#7c8fa0' : silverGrad(ctx, kx - 4, ky - 4, kx + 4, ky + 4, false);
+      ctx.fill(); ctx.stroke();
+
       /* 靴子 */
       ctx.save();
       ctx.translate(fx, fy);
-      ctx.rotate(shinA * 0.25 + L.foot);
-      ctx.fillStyle = isFar ? '#8f1a1a' : redG;
+      ctx.rotate(shinA * 0.22 + L.foot);
+      /* 靴子本体 + 鞋底一体成形 */
       ctx.beginPath();
-      ctx.moveTo(-6, -6);
-      ctx.quadraticCurveTo(6, -7.5, 12.5, -4);
-      ctx.quadraticCurveTo(14.5, -1, 12.5, 2.5);
-      ctx.lineTo(-5, 3);
-      ctx.quadraticCurveTo(-7.5, -1, -6, -6);
+      ctx.moveTo(-6.8, -8.6);
+      ctx.quadraticCurveTo(3, -9.8, 11.8, -5.2);
+      ctx.quadraticCurveTo(15.4, -2.4, 13.8, 1.8);
+      ctx.lineTo(13.2, 4.2);
+      ctx.quadraticCurveTo(14.8, 5.2, 12.6, 6.2);
+      ctx.lineTo(-4.8, 6.4);
+      ctx.quadraticCurveTo(-7.2, 5.4, -6.6, 3.2);
+      ctx.quadraticCurveTo(-8.4, -1.0, -6.8, -8.6);
       ctx.closePath();
+      ctx.fillStyle = redGrad(ctx, -7, -8, 14, 6, isFar);
+      ctx.fill(); ctx.stroke();
+      /* 鞋底压深 */
+      ctx.beginPath();
+      ctx.moveTo(-6.0, 3.6);
+      ctx.quadraticCurveTo(4, 4.8, 13.2, 3.8);
+      ctx.quadraticCurveTo(14.4, 5.2, 12.4, 6.0);
+      ctx.lineTo(-4.8, 6.2);
+      ctx.quadraticCurveTo(-6.8, 5.2, -6.0, 3.6);
+      ctx.closePath();
+      ctx.fillStyle = isFar ? '#5c0d0d' : '#6d1010';
       ctx.fill();
-      ctx.fillStyle = isFar ? '#5e0d0d' : '#7a1212';
-      roundRect(ctx, -5.5, 1.4, 18, 2.6, 1.3); ctx.fill();
+      /* 靴口高光 */
+      if (!isFar) {
+        ctx.beginPath();
+        ctx.moveTo(-5.4, -5.2);
+        ctx.quadraticCurveTo(3, -6.6, 10.6, -4);
+        ctx.strokeStyle = HERO.rim; ctx.lineWidth = 1.2; ctx.stroke();
+        ctx.strokeStyle = HERO.outline; ctx.lineWidth = 1;
+      }
       ctx.restore();
       return { x: fx, y: fy };
     };
 
     /* ---------------- 手臂 ---------------- */
-    const drawArm = (A, shade, isFar, wristBand) => {
-      const sx = sho.x + (isFar ? -2 : 2), sy = sho.y;
+    const drawArm = (A, isFar) => {
+      const sx = sho.x + (isFar ? -3.4 : 4.2), sy = sho.y;
       const ex = sx + Math.sin(A.up) * UPPER;
       const ey = sy + Math.cos(A.up) * UPPER;
       const fa = A.up + A.fore;
       const hx = ex + Math.sin(fa) * FORE;
       const hy = ey + Math.cos(fa) * FORE;
 
-      capsule(ctx, sx, sy, ex, ey, isFar ? 6.4 : 7.4, shade);
-      capsule(ctx, ex, ey, hx, hy, isFar ? 6 : 7, shade);
+      /* 上臂 */
+      taper(ctx, sx, sy, isFar ? 7.4 : 8.4, ex, ey, isFar ? 6.2 : 7);
+      ctx.fillStyle = silverGrad(ctx, sx - 4, sy, ex + 4, ey, isFar);
+      ctx.fill(); ctx.stroke();
+
+      /* 肩部红色披肩（顺着上臂方向贴住肩头，不再是独立圆盘） */
+      ctx.beginPath();
+      const sa = A.up * 0.45;
+      ctx.ellipse(sx + Math.sin(sa) * 1.6, sy + Math.cos(sa) * 1.6,
+                  isFar ? 5.6 : 6.4, isFar ? 4.0 : 4.6, sa, 0, TAU);
+      ctx.fillStyle = redGrad(ctx, sx - 7, sy - 5, sx + 7, sy + 7, isFar);
+      ctx.fill(); ctx.stroke();
+
+      /* 前臂 */
+      taper(ctx, ex, ey, isFar ? 6.2 : 7, hx, hy, isFar ? 5.2 : 5.8);
+      ctx.fillStyle = silverGrad(ctx, ex - 4, ey, hx + 4, hy, isFar);
+      ctx.fill(); ctx.stroke();
+
+      /* 前臂红环 */
+      const ux = Math.sin(fa), uy = Math.cos(fa);
+      taper(ctx, hx - ux * 9.5, hy - uy * 9.5, isFar ? 6.4 : 7.2,
+                hx - ux * 4.5, hy - uy * 4.5, isFar ? 6 : 6.8);
+      ctx.fillStyle = redGrad(ctx, hx - 8, hy - 8, hx + 8, hy + 8, isFar);
+      ctx.fill();
+
       /* 肘甲 */
-      ctx.fillStyle = isFar ? '#8296a6' : '#d8e4ee';
-      ctx.beginPath(); ctx.arc(ex, ey, isFar ? 3.2 : 3.7, 0, TAU); ctx.fill();
-      /* 手腕红环：沿手臂方向贴着前臂 */
-      if (wristBand) {
-        const ux = Math.sin(fa), uy = Math.cos(fa);
-        capsule(ctx, hx - ux * 9, hy - uy * 9, hx - ux * 4, hy - uy * 4,
-                isFar ? 7.4 : 8.4, isFar ? '#8f1a1a' : redG);
-      }
-      /* 手 */
-      ctx.fillStyle = isFar ? '#9db0bf' : '#e8f0f6';
-      ctx.beginPath(); ctx.arc(hx, hy, isFar ? 3.9 : 4.4, 0, TAU); ctx.fill();
+      ctx.beginPath();
+      ctx.ellipse(ex, ey, isFar ? 3.2 : 3.7, isFar ? 2.9 : 3.3, fa, 0, TAU);
+      ctx.fillStyle = silverGrad(ctx, ex - 4, ey - 4, ex + 4, ey + 4, isFar);
+      ctx.fill(); ctx.stroke();
+
+      /* 手：拳头（带拇指凸起） */
+      ctx.save();
+      ctx.translate(hx, hy);
+      ctx.rotate(fa);
+      ctx.beginPath();
+      ctx.moveTo(-4.4, -3.6);
+      ctx.quadraticCurveTo(2.6, -5.2, 5.2, -1.4);
+      ctx.quadraticCurveTo(6.4, 1.2, 3.6, 3.6);
+      ctx.quadraticCurveTo(0.6, 5.2, -3.6, 4.2);
+      ctx.quadraticCurveTo(-5.6, 1.6, -4.4, -3.6);
+      ctx.closePath();
+      ctx.fillStyle = silverGrad(ctx, -5, -5, 6, 5, isFar);
+      ctx.fill(); ctx.stroke();
+      /* 指节线 */
+      ctx.beginPath();
+      ctx.moveTo(-1.2, -3.6); ctx.quadraticCurveTo(1.6, -1.2, -0.4, 3.4);
+      ctx.strokeStyle = 'rgba(30,45,65,.45)'; ctx.lineWidth = 0.9; ctx.stroke();
+      ctx.strokeStyle = HERO.outline; ctx.lineWidth = 1;
+      ctx.restore();
       return { x: hx, y: hy };
     };
 
-    /* ---------------- 绘制顺序：远手 → 远腿 → 身体 → 近腿 → 近手 ---------------- */
-    drawArm(armF, silverFar, true, true);
-    drawLeg(legF, silverFar, true);
+    /* ---------------- 绘制顺序 ---------------- */
+    drawArm(armF, true);
+    drawLeg(legF, true);
 
-    /* 躯干 */
+    /* ---- 躯干 ---- */
     ctx.save();
     ctx.translate(0, hipY);
     ctx.rotate(lean);
-    const torsoH = SHO - HIP;   /* -23 */
-    ctx.fillStyle = silverG;
+    const TH = SHO - HIP;                 /* -23 */
+
+    /* 躯干轮廓（腰窄肩宽） */
     ctx.beginPath();
-    ctx.moveTo(-8.5, 1);
-    ctx.quadraticCurveTo(-11.5, torsoH * 0.55, -12.5, torsoH + 3);
-    ctx.quadraticCurveTo(-10, torsoH - 2.5, 0, torsoH - 2.5);
-    ctx.quadraticCurveTo(10, torsoH - 2.5, 12.5, torsoH + 3);
-    ctx.quadraticCurveTo(11.5, torsoH * 0.55, 8.5, 1);
+    ctx.moveTo(-8.2, 2.4);
+    ctx.quadraticCurveTo(-7.4, TH * 0.5, -11.4, TH + 4);
+    ctx.quadraticCurveTo(-11.8, TH - 1.4, -7.6, TH - 3.2);
+    ctx.quadraticCurveTo(0, TH - 4.6, 7.6, TH - 3.2);
+    ctx.quadraticCurveTo(11.8, TH - 1.4, 11.4, TH + 4);
+    ctx.quadraticCurveTo(7.4, TH * 0.5, 8.2, 2.4);
+    ctx.quadraticCurveTo(0, 5.2, -8.2, 2.4);
     ctx.closePath();
-    ctx.fill();
-    /* 胸口红带 */
-    ctx.fillStyle = redG;
+    ctx.fillStyle = silverGrad(ctx, -12, TH, 12, 2, false);
+    ctx.fill(); ctx.stroke();
+
+    /* 胸口红色领带（左右对称，中间下弧） */
     ctx.beginPath();
-    ctx.moveTo(-12.5, torsoH + 4);
-    ctx.quadraticCurveTo(0, torsoH + 10, 12.5, torsoH + 4);
-    ctx.lineTo(11.5, torsoH + 9.5);
-    ctx.quadraticCurveTo(0, torsoH + 15.5, -11.5, torsoH + 9.5);
+    ctx.moveTo(-13.2, TH + 0.6);
+    ctx.quadraticCurveTo(-7.0, TH + 7.2, 0, TH + 7.6);
+    ctx.quadraticCurveTo(7.0, TH + 7.2, 13.2, TH + 0.6);
+    ctx.lineTo(13.2, TH + 5.6);
+    ctx.quadraticCurveTo(6.8, TH + 11.6, 0, TH + 12.0);
+    ctx.quadraticCurveTo(-6.8, TH + 11.6, -13.2, TH + 5.6);
     ctx.closePath();
+    ctx.fillStyle = redGrad(ctx, -12, TH, 12, TH + 12, false);
     ctx.fill();
+
     /* 侧腰红条 */
-    ctx.fillStyle = '#c81e1e';
     ctx.beginPath();
-    ctx.moveTo(-11, torsoH + 12); ctx.lineTo(-6.5, torsoH + 11);
-    ctx.lineTo(-6, -3); ctx.lineTo(-10, -2);
-    ctx.closePath(); ctx.fill();
+    ctx.moveTo(-10.4, TH + 10.6);
+    ctx.quadraticCurveTo(-8.6, TH * 0.55, -7.4, -1.6);
+    ctx.lineTo(-4.6, -1.2);
+    ctx.quadraticCurveTo(-5.6, TH * 0.55, -7.2, TH + 10.2);
+    ctx.closePath();
+    ctx.fillStyle = redGrad(ctx, -11, TH, -4, 0, false);
+    ctx.fill();
+
     /* 腰带 */
-    ctx.fillStyle = '#a51414';
     ctx.beginPath();
-    ctx.moveTo(-8.5, 0); ctx.lineTo(8.5, 0); ctx.lineTo(8, 4.5); ctx.lineTo(-8, 4.5);
-    ctx.closePath(); ctx.fill();
+    ctx.moveTo(-8.4, 0.4);
+    ctx.quadraticCurveTo(0, 3.4, 8.4, 0.4);
+    ctx.lineTo(8, 3.4);
+    ctx.quadraticCurveTo(0, 6.4, -8, 3.4);
+    ctx.closePath();
+    ctx.fillStyle = redGrad(ctx, -9, 0, 9, 6, false);
+    ctx.fill();
+
+    /* 胸口高光 */
+    ctx.beginPath();
+    ctx.moveTo(-8.8, TH + 1.2);
+    ctx.quadraticCurveTo(0, TH - 3.4, 8.8, TH + 1.2);
+    ctx.strokeStyle = HERO.rim; ctx.lineWidth = 1.3; ctx.stroke();
+    ctx.strokeStyle = HERO.outline; ctx.lineWidth = 1;
 
     /* 彩色计时器 */
     const hpRatio = clamp(st.hp == null ? 1 : st.hp, 0, 1);
     const danger = hpRatio < 0.35;
     const pulse = danger ? (Math.sin(t * 14) > 0 ? 1 : 0.28) : (0.72 + 0.28 * Math.sin(t * 3));
-    const ctY = torsoH + 10.5;
+    const ctY = TH + 15.2;
+    /* 银环（放大，保证游戏内可辨） */
+    ctx.beginPath(); ctx.arc(0, ctY, 7.2, 0, TAU);
+    ctx.fillStyle = silverGrad(ctx, -8, ctY - 8, 8, ctY + 8, false);
+    ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.arc(0, ctY, 7.2, 0, TAU);
+    ctx.strokeStyle = 'rgba(40,60,80,.5)'; ctx.lineWidth = 0.8; ctx.stroke();
+    ctx.strokeStyle = HERO.outline; ctx.lineWidth = 1;
+    /* 灯芯 */
     ctx.save();
     ctx.globalAlpha = pulse;
     ctx.shadowColor = danger ? '#ff4d4d' : '#4fd6ff';
-    ctx.shadowBlur = 11;
-    ctx.fillStyle = danger ? '#ff3b3b' : '#4fd6ff';
-    ctx.beginPath(); ctx.arc(0, ctY, 4.4, 0, TAU); ctx.fill();
+    ctx.shadowBlur = 16;
+    const cg = ctx.createRadialGradient(-1.6, ctY - 1.8, 0.8, 0, ctY, 6.0);
+    if (danger) { cg.addColorStop(0, '#fff0f0'); cg.addColorStop(0.45, '#ff5a5a'); cg.addColorStop(1, '#9c0a0a'); }
+    else { cg.addColorStop(0, '#eaffff'); cg.addColorStop(0.45, '#4fe0ff'); cg.addColorStop(1, '#0a6f9c'); }
+    ctx.fillStyle = cg;
+    ctx.beginPath(); ctx.arc(0, ctY, 5.8, 0, TAU); ctx.fill();
     ctx.restore();
-    ctx.strokeStyle = 'rgba(12,34,48,.9)'; ctx.lineWidth = 1.7;
-    ctx.beginPath(); ctx.arc(0, ctY, 4.4, 0, TAU); ctx.stroke();
-    ctx.fillStyle = 'rgba(255,255,255,.85)';
-    ctx.beginPath(); ctx.arc(-1.4, ctY - 1.5, 1.4, 0, TAU); ctx.fill();
+    ctx.beginPath(); ctx.arc(0, ctY, 5.8, 0, TAU);
+    ctx.strokeStyle = 'rgba(12,34,48,.9)'; ctx.lineWidth = 1.4; ctx.stroke();
+    /* 高光，增强球体感 */
+    ctx.beginPath(); ctx.arc(-1.8, ctY - 2.0, 1.7, 0, TAU);
+    ctx.fillStyle = 'rgba(255,255,255,.8)'; ctx.fill();
+    ctx.strokeStyle = HERO.outline; ctx.lineWidth = 1;
 
     /* 脖子 */
-    ctx.fillStyle = silverG;
-    roundRect(ctx, -4.5, torsoH - 8, 9, 9, 3.5); ctx.fill();
+    taper(ctx, 0, TH + 0.5, 11.5, 0.8, TH - 7.5, 9.5);
+    ctx.fillStyle = silverGrad(ctx, -5, TH - 9, 5, TH, false);
+    ctx.fill(); ctx.stroke();
 
-    /* 头 */
+    /* ---- 头 ---- */
     ctx.save();
-    ctx.translate(0, HEADY - HIP);   /* 头部相对胯部：HEADY-HIP = 头顶上方 35 */
+    ctx.translate(0, HEADY - HIP);
     ctx.rotate(-lean * 0.5);
-    /* 头型 */
-    ctx.fillStyle = grad(ctx, -9, -10, 9, 9, [[0, '#ffffff'], [0.55, '#f4f8fc'], [1, '#b9c8d5']]);
+    ctx.scale(0.78, 0.78);   /* 缩小头部，拉长身型到 ~6 头身 */
+
+    /* 头部轮廓 */
     ctx.beginPath();
-    ctx.moveTo(-6.6, 1.6);
-    ctx.quadraticCurveTo(-7.8, -7.2, 0, -8.6);
-    ctx.quadraticCurveTo(7.8, -7.2, 6.6, 1.6);
-    ctx.quadraticCurveTo(5.2, 7.2, 0, 7.2);
-    ctx.quadraticCurveTo(-5.2, 7.2, -6.6, 1.6);
+    ctx.moveTo(-6.6, 1.8);
+    ctx.quadraticCurveTo(-8.2, -6.4, -3.6, -9.6);
+    ctx.quadraticCurveTo(1.4, -12.2, 6.2, -7.8);
+    ctx.quadraticCurveTo(8.2, -5, 6.8, 1.4);
+    ctx.quadraticCurveTo(5.4, 7.4, 0, 7.6);
+    ctx.quadraticCurveTo(-5.2, 7.6, -6.6, 1.8);
     ctx.closePath();
-    ctx.fill();
-    /* 头鳍 */
-    ctx.fillStyle = redG;
+    ctx.fillStyle = silverGrad(ctx, -8, -11, 8, 8, false);
+    ctx.fill(); ctx.stroke();
+
+    /* 红色鳍冠：实体立起的鳍刃，从额头越过头顶连到后脑 */
     ctx.beginPath();
-    ctx.moveTo(-4.4, -6);
-    ctx.quadraticCurveTo(-2.2, -15, 7, -10);
-    ctx.lineTo(4.6, -4.8);
-    ctx.quadraticCurveTo(-1, -7.8, -4.4, -6);
-    ctx.closePath(); ctx.fill();
-    ctx.strokeStyle = 'rgba(120,10,10,.6)'; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(-4.4, -6); ctx.quadraticCurveTo(-2.2, -15, 7, -10); ctx.stroke();
-    /* 眼睛 */
-    /* 远侧眼（小） */
-    ctx.fillStyle = '#e8c93c';
-    ctx.beginPath(); ctx.ellipse(-3.4, -2.2, 2.2, 1.6, -0.22, 0, TAU); ctx.fill();
-    /* 近侧眼（大） */
+    ctx.moveTo(-6.0, -4.0);                                  /* 额头根部 */
+    ctx.quadraticCurveTo(-6.6, -12.8, -2.4, -16.6);          /* 前缘冲到最高点 */
+    ctx.quadraticCurveTo(1.2, -19.4, 7.2, -13.0);            /* 顶部向后掠，峰更尖 */
+    ctx.quadraticCurveTo(9.6, -8.6, 8.4, -5.2);              /* 后脑收尾 */
+    ctx.quadraticCurveTo(4.2, -10.2, -0.4, -10.6);           /* 内缘贴着颅骨 */
+    ctx.quadraticCurveTo(-4.8, -10.2, -3.8, -4.0);
+    ctx.closePath();
+    ctx.fillStyle = redGrad(ctx, -6, -16, 8, -4, false);
+    ctx.fill(); ctx.stroke();
+    /* 鳍冠高光 */
+    ctx.beginPath();
+    ctx.moveTo(-4.8, -6.4);
+    ctx.quadraticCurveTo(-5.0, -12.6, -1.6, -14.6);
+    ctx.quadraticCurveTo(2.4, -16.8, 6.4, -11.8);
+    ctx.strokeStyle = 'rgba(255,190,190,.8)'; ctx.lineWidth = 1.2; ctx.stroke();
+    ctx.strokeStyle = HERO.outline; ctx.lineWidth = 1;
+
+    /* 后脑尖角 */
+    ctx.beginPath();
+    ctx.moveTo(-6.2, -6.2);
+    ctx.quadraticCurveTo(-9.4, -5.4, -8.6, -1.6);
+    ctx.quadraticCurveTo(-7.4, -4.4, -5.8, -3.6);
+    ctx.closePath();
+    ctx.fillStyle = silverGrad(ctx, -9, -7, -5, -1, false);
+    ctx.fill(); ctx.stroke();
+
+    /* 远侧眼 */
+    ctx.beginPath();
+    ctx.ellipse(-3.8, -1.8, 2.5, 1.7, -0.32, 0, TAU);
+    ctx.fillStyle = 'rgba(232,201,60,.92)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(90,64,0,.5)'; ctx.lineWidth = 0.8; ctx.stroke();
+
+    /* 近侧眼：大号杏眼 + 发光 */
     ctx.save();
-    ctx.shadowColor = '#ffd84d'; ctx.shadowBlur = 5;
-    ctx.fillStyle = '#ffe14d';
-    ctx.beginPath(); ctx.ellipse(2.9, -2.4, 4.1, 2.8, -0.22, 0, TAU); ctx.fill();
+    ctx.shadowColor = '#ffd84d'; ctx.shadowBlur = 3;
+    ctx.beginPath();
+    ctx.moveTo(-1.4, 0.4);                                   /* 内眼角（低） */
+    ctx.quadraticCurveTo(1.4, -5.2, 5.6, -4.8);              /* 上缘上扬 */
+    ctx.quadraticCurveTo(8.8, -4.4, 7.9, -1.4);              /* 外眼角（高而尖） */
+    ctx.quadraticCurveTo(5.0, 1.8, 1.2, 1.6);                /* 下缘 */
+    ctx.quadraticCurveTo(-0.8, 1.2, -1.4, 0.4);
+    ctx.closePath();
+    const eg = ctx.createLinearGradient(0, -4, 6, 1);
+    eg.addColorStop(0, HERO.eyeHi);
+    eg.addColorStop(0.5, HERO.eyeMid);
+    eg.addColorStop(1, HERO.eyeLo);
+    ctx.fillStyle = eg;
+    ctx.fill();
     ctx.restore();
-    ctx.strokeStyle = 'rgba(120,86,0,.55)'; ctx.lineWidth = 0.9;
-    ctx.beginPath(); ctx.ellipse(2.9, -2.4, 4.1, 2.8, -0.22, 0, TAU); ctx.stroke();
-    ctx.fillStyle = '#ffffff';
-    ctx.beginPath(); ctx.ellipse(1.8, -3.5, 1.6, 1.0, -0.22, 0, TAU); ctx.fill();
+    ctx.strokeStyle = 'rgba(120,86,0,.65)'; ctx.lineWidth = 1; ctx.stroke();
+    /* 眼高光 */
+    ctx.beginPath();
+    ctx.ellipse(1.8, -3.0, 1.4, 0.85, -0.34, 0, TAU);
+    ctx.fillStyle = 'rgba(255,255,255,.9)';
+    ctx.fill();
+    ctx.strokeStyle = HERO.outline; ctx.lineWidth = 1;
+
     /* 嘴 */
-    ctx.strokeStyle = '#4a5561'; ctx.lineWidth = 1.5; ctx.lineCap = 'round';
-    ctx.beginPath(); ctx.moveTo(4.6, 4.2); ctx.quadraticCurveTo(6.6, 6, 8, 3.6); ctx.stroke();
-    /* 高光 */
-    ctx.fillStyle = 'rgba(255,255,255,.55)';
-    ctx.beginPath(); ctx.ellipse(-2.4, -6.6, 3.4, 1.6, -0.35, 0, TAU); ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(2.6, 3.8);
+    ctx.quadraticCurveTo(4.4, 5, 5.6, 3.2);
+    ctx.strokeStyle = 'rgba(46,58,74,.75)'; ctx.lineWidth = 1.1; ctx.stroke();
+    ctx.strokeStyle = HERO.outline; ctx.lineWidth = 1;
+
+    /* 头顶高光 */
+    ctx.beginPath();
+    ctx.moveTo(-4.8, -7.2);
+    ctx.quadraticCurveTo(-1, -10.4, 3.4, -8.4);
+    ctx.strokeStyle = 'rgba(255,255,255,.7)'; ctx.lineWidth = 1.2; ctx.stroke();
+    ctx.strokeStyle = HERO.outline; ctx.lineWidth = 1;
     ctx.restore();
 
-    ctx.restore();  /* 躯干 */
+    ctx.restore();   /* 躯干 */
 
-    /* 近侧腿、近侧手 */
-    drawLeg(legN, silverG, false);
-    const hand = drawArm(armN, silverG, false, true);
+    /* ---- 近侧腿 / 近侧手 ---- */
+    drawLeg(legN, false);
+    const hand = drawArm(armN, false);
 
     /* 蓄力光球 */
     if (st.charge > 0) {
-      const cr = 3 + st.charge * 10;
+      const cr = 2.6 + st.charge * 7.6;
       ctx.save();
       ctx.globalCompositeOperation = 'lighter';
-      const rg = ctx.createRadialGradient(hand.x, hand.y, 0, hand.x, hand.y, cr * 2.4);
+      const rg = ctx.createRadialGradient(hand.x, hand.y, 0, hand.x, hand.y, cr * 2.2);
       rg.addColorStop(0, 'rgba(255,255,255,.95)');
       rg.addColorStop(0.35, 'rgba(255,220,90,.8)');
       rg.addColorStop(1, 'rgba(255,150,30,0)');
       ctx.fillStyle = rg;
-      ctx.beginPath(); ctx.arc(hand.x, hand.y, cr * 2.4, 0, TAU); ctx.fill();
+      ctx.beginPath(); ctx.arc(hand.x, hand.y, cr * 2.2, 0, TAU); ctx.fill();
       ctx.restore();
+      /* 手部轮廓压在光球之上，保证剪影清晰 */
+      ctx.beginPath(); ctx.arc(hand.x, hand.y, 4.2, 0, TAU);
+      ctx.strokeStyle = HERO.outline; ctx.lineWidth = 1; ctx.stroke();
       st.hand = { x: hand.x * f * 1.15 + x, y: hand.y * 1.15 + y };
     }
 
