@@ -294,6 +294,7 @@
   /* --------------------------------------------------------------- 音乐 */
   /* 极简程序化配乐：低音 + 琶音 + 踩镲，每关不同调式与速度 */
   const Music = UG.Music = {
+    VOL: 0.5,                       /* 总线音量：原来 0.16 太小，实际听不见 */
     enabled: true,
     playing: false,
     ctx: null,
@@ -315,13 +316,13 @@
       this.ctx = ctx;
       this.master = master;
       this.bus = ctx.createGain();
-      this.bus.gain.value = 0.16;
+      this.bus.gain.value = Music.VOL;
       this.bus.connect(master);
     },
 
     setEnabled(on) {
       this.enabled = on;
-      if (this.bus) this.bus.gain.value = on ? 0.16 : 0;
+      if (this.bus) this.bus.gain.value = on ? Music.VOL : 0;
       if (!on) this.stop();
     },
 
@@ -384,7 +385,7 @@
       /* 低音：每小节 1、3 拍 */
       if (step % 8 === 0) {
         const deg = (step / 8) % 2 === 0 ? 0 : 3;
-        this._note(c.root / 2 * Math.pow(2, sc[deg % sc.length] / 12), t, spb * 6, c.bass, 0.3);
+        this._note(c.root / 2 * Math.pow(2, sc[deg % sc.length] / 12), t, spb * 6, c.bass, 0.34);
       }
 
       /* 琶音：八分音符上行 */
@@ -392,14 +393,14 @@
         const i = (step / 2) % 8;
         const oct = i >= 6 ? 2 : 1;
         const deg = sc[i % sc.length];
-        this._note(c.root * oct * Math.pow(2, deg / 12), t, spb * 1.5, c.arp, 0.12);
+        this._note(c.root * oct * Math.pow(2, deg / 12), t, spb * 1.5, c.arp, 0.17);
       }
 
       /* 踩镲 */
-      if (c.hat && step % 4 === 2) this._hat(t, 0.05);
+      if (c.hat && step % 4 === 2) this._hat(t, 0.075);
 
       /* 每 16 步加一记重拍 */
-      if (step === 0) this._note(c.root * 2, t, spb * 2, 'sine', 0.09);
+      if (step === 0) this._note(c.root * 2, t, spb * 2, 'sine', 0.13);
     },
   };
 

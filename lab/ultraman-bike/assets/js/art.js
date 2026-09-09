@@ -700,11 +700,12 @@
         armF = { up: 0.55, fore: 1.15 };
         break;
       case 'crouch':
-        bob = 9; lean = 0.22;
-        legN = { hip: 1.15, knee: 1.3, foot: 0.3 };
-        legF = { hip: -0.15, knee: 0.75, foot: -0.2 };
-        armN = { up: 1.32, fore: 0.12 };
-        armF = { up: 0.62, fore: 0.78 };
+        /* 趴低：胯部压到 -18，躯干前倾 66°，整体高度约为站立的一半 */
+        bob = 18; lean = 1.15;
+        legN = { hip: 1.6, knee: 1.8, foot: 0.35 };
+        legF = { hip: 0.6, knee: 2.0, foot: -0.25 };
+        armN = { up: 1.5, fore: 0.12 };   /* 身体近乎水平，手臂向前平伸 */
+        armF = { up: 1.2, fore: 0.35 };
         break;
       case 'aimup':
         lean = -0.04;

@@ -17,13 +17,14 @@
   const PLAYER_W    = 22;
   const PLAYER_H    = 50;
   const MAX_HP      = 100;
-  const CROUCH_H    = 32;          /* 趴下时的碰撞盒高度 */
+  const CROUCH_H    = 22;          /* 趴下时的碰撞盒高度（更低，才能躲子弹） */
   const FIRE_CD     = 0.135;
   const BEAM_MAX    = 0.8;
   const MAX_STAMINA = 100;
   const BEAM_COST   = 100;         /* 一次光波消耗满格体力 */
   const STAMINA_HIT = 12;          /* 普通攻击命中一次积攒 */
   const STAMINA_KILL = 30;         /* 击杀额外积攒 */
+  const BOSS_CONTACT_DMG = 14;     /* 贴着 BOSS 身体的伤害 */
   const STAMINA_BOSS_HIT = 3;      /* 命中 BOSS 的少量回复（BOSS 血量厚、命中频繁） */
   const COYOTE_TIME = 0.1;         /* 离开地面后仍可起跳的宽容时间 */
   const JUMP_BUFFER = 0.12;        /* 落地前提前按跳的缓冲 */
@@ -137,7 +138,7 @@
   function musicStart() {
     if (!G.save.musicOn) return;
     const M = UG.Audio.Music;
-    if (M && G.level) M.start(G.level.theme);
+    if (M) M.start(G.level ? G.level.theme : 'city');   /* 标题页也放（城市主题） */
   }
   function musicStop() {
     const M = UG.Audio.Music;
@@ -371,7 +372,7 @@
   function handPos(p) {
     if (p.aim === 'up')   return { x: p.x + p.facing * 5, y: p.y - (p.h || PLAYER_H) - 8 };
     if (p.aim === 'down') return { x: p.x + p.facing * 9, y: p.y - 4 };
-    return { x: p.x + p.facing * 15, y: p.y - (p.crouching ? 18 : 32) };
+    return { x: p.x + p.facing * 15, y: p.y - (p.crouching ? 12 : 32) };
   }
 
   function aimVector(p) {
@@ -838,6 +839,12 @@
     b.facing = p.x < b.x ? -1 : 1;
     b.timer -= dt;
 
+    /* 身体接触伤害：防止贴身站桩 */
+    if (b.state !== 'dead' && p.alive) {
+      const bb = { x: b.x - b.w * b.scale / 2, y: b.y, w: b.w * b.scale, h: b.h * b.scale };
+      if (aabb(bb, playerRect(p))) damagePlayer(BOSS_CONTACT_DMG, b.x);
+    }
+
     const p2 = b.phase === 2;
     const speedK = p2 ? 0.72 : 1;
 
@@ -859,7 +866,7 @@
   function bossShoot(b, opts) {
     G.bullets.push(Object.assign({
       side: 'enemy', kind: 'orb', x: b.x, y: b.y + b.h * 0.4,
-      vx: 0, vy: 0, r: 6, damage: 11, life: 4, color: '#ff5a3c',
+      vx: 0, vy: 0, r: 6, damage: 16, life: 4, color: '#ff5a3c',
     }, opts));
   }
 
@@ -879,7 +886,7 @@
             const a = base + i * 0.24;
             bossShoot(b, {
               x: sx, y: sy, vx: Math.cos(a) * speed, vy: Math.sin(a) * speed - 40,
-              r: 7, color: '#b8c6d4', gravity: 260, damage: 12,
+              r: 7, color: '#b8c6d4', gravity: 260, damage: 18,
             });
           }
           UG.Audio.enemyShot();
@@ -890,7 +897,7 @@
           for (let i = 0; i < 3; i++) {
             G.bullets.push({
               side: 'enemy', kind: 'wave', x: b.x + dir * (40 + i * 46), y: lv.groundY - 14,
-              vx: dir * (260 + i * 40), vy: 0, r: 12, damage: 14, life: 2.6,
+              vx: dir * (260 + i * 40), vy: 0, r: 12, damage: 20, life: 2.6,
               color: '#ffd84d', ground: true,
             });
           }
@@ -921,7 +928,7 @@
             const a = base + (i - (n - 1) / 2) * 0.19;
             bossShoot(b, {
               x: sx, y: sy, vx: Math.cos(a) * speed, vy: Math.sin(a) * speed,
-              r: 6, color: '#c98a3c', damage: 11,
+              r: 6, color: '#c98a3c', damage: 16,
             });
           }
           UG.Audio.enemyShot();
@@ -932,7 +939,7 @@
             G.bullets.push({
               side: 'enemy', kind: 'orb', x: bx, y: -10,
               vx: rand(-40, 40), vy: rand(120, 190), r: 7,
-              damage: 10, life: 5, color: '#e6c08a', gravity: 90,
+              damage: 15, life: 5, color: '#e6c08a', gravity: 90,
             });
           }
           UG.Audio.enemyShot();
@@ -961,7 +968,7 @@
             const a = base + (i - (n - 1) / 2) * 0.16;
             bossShoot(b, {
               x: sx, y: sy, vx: Math.cos(a) * speed, vy: Math.sin(a) * speed,
-              r: 6, color: '#8fd4f0', damage: 11,
+              r: 6, color: '#8fd4f0', damage: 16,
             });
           }
           UG.Audio.enemyShot();
@@ -971,7 +978,7 @@
             const tx = px + (i - 1.5) * 70;
             G.bullets.push({
               side: 'enemy', kind: 'orb', x: tx, y: 20,
-              vx: 0, vy: 300, r: 8, damage: 13, life: 3,
+              vx: 0, vy: 300, r: 8, damage: 19, life: 3,
               color: '#dff6ff', gravity: 260, ice: true,
             });
           }
@@ -981,7 +988,7 @@
           const dir = b.facing;
           G.bullets.push({
             side: 'enemy', kind: 'wave', x: b.x + dir * 30, y: sy,
-            vx: dir * 420, vy: 0, r: 10, damage: 15, life: 1.6,
+            vx: dir * 420, vy: 0, r: 10, damage: 22, life: 1.6,
             color: '#8fd4f0', freeze: true,
           });
           UG.Audio.beamFire();
@@ -997,7 +1004,7 @@
             const a = Math.atan2(py - sy, px - sx) + (i - (n - 1) / 2) * 0.12;
             bossShoot(b, {
               x: sx, y: sy, vx: Math.cos(a) * speed, vy: Math.sin(a) * speed,
-              r: 8, color: '#ff8a1f', damage: 12, trail: true,
+              r: 8, color: '#ff8a1f', damage: 18, trail: true,
             });
           }
           UG.Audio.enemyShot();
@@ -1007,7 +1014,7 @@
           for (let i = 0; i < 4; i++) {
             G.bullets.push({
               side: 'enemy', kind: 'wave', x: b.x + dir * (50 + i * 52), y: lv.groundY - 16,
-              vx: dir * (230 + i * 34), vy: 0, r: 13, damage: 14, life: 2.8,
+              vx: dir * (230 + i * 34), vy: 0, r: 13, damage: 20, life: 2.8,
               color: '#ff6a2a', ground: true,
             });
           }
@@ -1020,7 +1027,7 @@
               if (!G.boss || !G.boss.alive || G.state !== 'playing') return;
               G.bullets.push({
                 side: 'enemy', kind: 'pillar', x: tx, y: lv.groundY,
-                vx: 0, vy: 0, r: 20, damage: 16, life: 0.75,
+                vx: 0, vy: 0, r: 20, damage: 23, life: 0.75,
                 color: '#ff9a3c', pillar: true,
               });
               UG.Particles.burst(tx, lv.groundY, 16, {
@@ -1053,7 +1060,7 @@
             bossShoot(b, {
               x: b.x, y: b.y + b.h * 0.4,
               vx: Math.cos(a) * 155, vy: Math.sin(a) * 155,
-              r: 6, color: '#c4b5fd', damage: 11, life: 4.5,
+              r: 6, color: '#c4b5fd', damage: 16, life: 4.5,
             });
           }
         } else if (b.pattern === 1) {
@@ -1063,7 +1070,7 @@
             const a = base + (i - 1) * 0.3;
             bossShoot(b, {
               x: sx, y: sy, vx: Math.cos(a) * 300, vy: Math.sin(a) * 300,
-              r: 5, color: '#e879f9', damage: 12,
+              r: 5, color: '#e879f9', damage: 18,
             });
           }
           UG.Audio.beamFire();
@@ -1800,6 +1807,7 @@
   function showTitle() {
     G.state = 'title';
     musicStop();
+    musicStart();          /* 标题页恢复音乐 */
     hideBossBar();
     syncUi();
     const achCount = Object.keys(G.save.achievements).length;
