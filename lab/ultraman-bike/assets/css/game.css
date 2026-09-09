@@ -147,17 +147,17 @@ html, body {
   position: absolute; left: 50%; top: 50%; width: 34px; height: 34px;
   transform: translate(-50%, -50%);
   border-radius: 50%;
-  background: rgba(10, 16, 30, .5);
-  border: 1px solid rgba(140, 190, 255, .18);
+  background: rgba(10, 16, 30, .22);
+  border: 1px solid rgba(140, 190, 255, .12);
 }
 .dbtn {
   position: absolute; width: 58px; height: 58px;
   display: flex; align-items: center; justify-content: center;
-  font-size: 17px; line-height: 1; color: #dce8ff;
-  background: rgba(14, 22, 40, .62);
-  border: 1px solid rgba(140, 190, 255, .3);
+  font-size: 17px; line-height: 1; color: rgba(220, 232, 255, .8);
+  background: rgba(14, 22, 40, .3);
+  border: 1px solid rgba(140, 190, 255, .2);
   border-radius: 15px;
-  backdrop-filter: blur(7px);
+  backdrop-filter: blur(2px);
   transition: background .07s linear, transform .07s linear, border-color .07s;
   cursor: pointer;
 }
@@ -166,8 +166,8 @@ html, body {
 .dbtn.right { left: 110px; top: 55px; }
 .dbtn.down  { left: 55px; top: 110px; }
 .dbtn.on {
-  background: rgba(79, 214, 255, .3);
-  border-color: rgba(120, 230, 255, .85);
+  background: rgba(79, 214, 255, .34);
+  border-color: rgba(120, 230, 255, .8);
   transform: scale(.94);
   color: #fff;
 }
@@ -182,39 +182,39 @@ html, body {
 .abtn {
   position: absolute;
   display: flex; align-items: center; justify-content: center;
-  font-size: 17px; font-weight: 700; color: #fff;
+  font-size: 17px; font-weight: 700; color: rgba(255, 255, 255, .88);
   border-radius: 50%;
-  border: 2px solid rgba(255, 255, 255, .28);
-  backdrop-filter: blur(7px);
+  border: 2px solid rgba(255, 255, 255, .22);
+  backdrop-filter: blur(2px);
   transition: transform .07s linear, filter .07s linear;
   cursor: pointer;
-  text-shadow: 0 2px 5px rgba(0, 0, 0, .6);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, .5);
 }
 .abtn.on { transform: scale(.9); filter: brightness(1.5); }
 
 .abtn.fire {
   right: 0; bottom: 6px; width: 76px; height: 76px; font-size: 20px;
-  background: radial-gradient(circle at 35% 30%, #5aa9ff, #1b56b8);
-  border-color: rgba(150, 210, 255, .6);
-  box-shadow: 0 0 18px rgba(60, 140, 255, .45);
+  background: radial-gradient(circle at 35% 30%, rgba(90,169,255,.42), rgba(27,86,184,.34));
+  border-color: rgba(150, 210, 255, .42);
+  box-shadow: 0 0 18px rgba(60, 140, 255, .22);
 }
 .abtn.beam {
   right: 88px; bottom: 58px; width: 62px; height: 62px;
-  background: radial-gradient(circle at 35% 30%, #ffd45e, #c9860c);
-  border-color: rgba(255, 225, 140, .6);
-  box-shadow: 0 0 18px rgba(255, 190, 60, .45);
+  background: radial-gradient(circle at 35% 30%, rgba(255,228,130,.52), rgba(224,158,26,.44));
+  border-color: rgba(255, 235, 160, .55);
+  box-shadow: 0 0 18px rgba(255, 190, 60, .22);
 }
 .abtn.jump {
   left: 0; bottom: 66px; width: 60px; height: 60px;
-  background: radial-gradient(circle at 35% 30%, #7ef0c0, #128a5c);
-  border-color: rgba(150, 255, 210, .55);
-  box-shadow: 0 0 16px rgba(60, 230, 170, .4);
+  background: radial-gradient(circle at 35% 30%, rgba(126,240,192,.42), rgba(18,138,92,.34));
+  border-color: rgba(150, 255, 210, .4);
+  box-shadow: 0 0 16px rgba(60, 230, 170, .2);
 }
 .abtn.dash {
   left: 66px; bottom: 0; width: 54px; height: 54px;
-  background: radial-gradient(circle at 35% 30%, #c79bff, #6a35c4);
-  border-color: rgba(210, 180, 255, .55);
-  box-shadow: 0 0 16px rgba(150, 90, 255, .4);
+  background: radial-gradient(circle at 35% 30%, rgba(199,155,255,.42), rgba(106,53,196,.34));
+  border-color: rgba(210, 180, 255, .4);
+  box-shadow: 0 0 16px rgba(150, 90, 255, .2);
 }
 
 /* 蓄力时按钮发光 */
