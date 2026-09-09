@@ -144,6 +144,9 @@
       pose: 'idle',
       animT: 0,
       hurtT: 0,
+      squash: 0,
+      wasGround: false,
+      dustT: 0,
       alive: true,
       prevBottom: 0,
     };
@@ -316,6 +319,13 @@
       x: h.x, y: h.y, vx: -p.facing * 60, vy: rand(-20, 20),
       life: 0.18, size: 3.5, color: '#bff2ff', gravity: 0,
     });
+    for (let i = 0; i < 3; i++) {
+      UG.Particles.spawn({
+        x: h.x + p.facing * 3, y: h.y + rand(-3, 3),
+        vx: p.facing * rand(120, 260), vy: rand(-40, 40),
+        life: rand(0.08, 0.16), size: rand(1.5, 3), color: '#ffffff', gravity: 0,
+      });
+    }
   }
 
   function fireBeam(p, ratio) {
@@ -1298,6 +1308,31 @@
       p.x = clamp(p.x, minX, maxX);
 
       resolveGround(p, dt);
+
+      /* 落地压缩 */
+      if (p.onGround && !p.wasGround && p.vy > 220) {
+        p.squash = Math.min(1, p.vy / 700);
+        UG.Particles.burst(p.x, p.y, 7, {
+          color: '#cfe0ff', minSpeed: 30, maxSpeed: 120, maxLife: 0.3, gravity: 180,
+        });
+      }
+      p.wasGround = p.onGround;
+      if (p.squash > 0) p.squash = Math.max(0, p.squash - dt * 5.5);
+
+      /* 跑动扬尘 */
+      if (p.onGround && Math.abs(p.vx) > 90) {
+        p.dustT -= dt;
+        if (p.dustT <= 0) {
+          p.dustT = 0.085;
+          UG.Particles.spawn({
+            x: p.x - p.facing * 8, y: p.y - 2,
+            vx: -p.facing * rand(20, 70), vy: rand(-40, -10),
+            life: rand(0.28, 0.5), size: rand(1.8, 3.6),
+            color: '#cfd8e2', gravity: 60, drag: 0.94,
+          });
+        }
+      }
+
       if (p.onGround) p.jumps = 0;
 
       // 地面危险区（岩浆）
@@ -1364,13 +1399,13 @@
 
   function drawShadows(ctx, lv) {
     const p = G.player;
-    if (p && p.alive) shadowEllipse(ctx, p.x, p.y, 15, 0.34);
+    if (p && p.alive) shadowEllipse(ctx, p.x, p.y, 17, 0.42);
     G.enemies.forEach((e) => {
       const groundY = e.type === 'flyer' ? lv.groundY : e.y;
       shadowEllipse(ctx, e.x, groundY, e.w * 0.46, e.type === 'flyer' ? 0.14 : 0.22);
     });
     const b = G.boss;
-    if (b && b.alive) shadowEllipse(ctx, b.x, lv.groundY, b.w * b.scale * 0.42, 0.3);
+    if (b && b.alive) shadowEllipse(ctx, b.x, lv.groundY, b.w * b.scale * 0.45, 0.4);
   }
 
   function render() {
@@ -1447,7 +1482,7 @@
       Art.ultraman(ctx, p.x, p.y, {
         pose: p.pose, t: p.animT += 0.016, facing: p.facing,
         charge: p.charging ? p.charge / BEAM_MAX : 0,
-        hp: p.hp / MAX_HP, invuln: p.invuln,
+        hp: p.hp / MAX_HP, invuln: p.invuln, squash: p.squash,
       });
     }
 
@@ -1486,6 +1521,10 @@
     }
 
     ctx.restore();
+
+    /* 前景剪影 + 全局光照 */
+    Art.foreground(ctx, lv, camX, G.t);
+    Art.lighting(ctx, lv, camX, G.t);
 
     /* BOSS 出场警告 */
     if (G.bossIntro > 0 && G.boss) {
@@ -1764,7 +1803,7 @@
     requestAnimationFrame(loop);
 
     /* 调试钩子：仅在 #debug 时暴露内部状态，方便自动化测试 */
-    if (/^#(debug|shot)/.test(location.hash)) {
+    if (/^#(debug|shot|play|boss)/.test(location.hash)) {
       global.__UG = { G, handleAction, spawnEnemy, damagePlayer, loadLevel, get state() { return G.state; } };
     }
   }
