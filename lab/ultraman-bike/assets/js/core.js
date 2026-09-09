@@ -37,7 +37,8 @@
   UG.TAU = TAU;
 
   /* ------------------------------------------------------------ 画布管理 */
-  UG.VIEW = { w: 640, h: 360 };
+  /* 逻辑视口：高度固定 360，宽度随屏幕宽高比自适应（宽屏能看到更多关卡内容） */
+  UG.VIEW = { w: 640, h: 360, minW: 640, maxW: 960 };
 
   const Screen = UG.Screen = {
     canvas: null,
@@ -55,7 +56,11 @@
 
     resize() {
       const vw = window.innerWidth, vh = window.innerHeight;
-      // 触屏横屏时铺满（cover 会让画面被裁，这里用 fit 保证可视范围完整）
+
+      /* 按屏幕比例决定逻辑宽度：越宽的屏幕看到越多，而不是两侧留白 */
+      const aspect = vw / Math.max(1, vh);
+      UG.VIEW.w = Math.round(clamp(UG.VIEW.h * aspect, UG.VIEW.minW, UG.VIEW.maxW));
+
       const scale = Math.min(vw / UG.VIEW.w, vh / UG.VIEW.h);
       const cssW = Math.round(UG.VIEW.w * scale);
       const cssH = Math.round(UG.VIEW.h * scale);
@@ -75,6 +80,8 @@
       const k = (cssW * dpr) / UG.VIEW.w;
       this.ctx.setTransform(k, 0, 0, k, 0, 0);
       this.ctx.imageSmoothingEnabled = true;
+
+      if (this.onResize) this.onResize();
     },
 
     /** 屏幕坐标 → 逻辑坐标 */
@@ -210,6 +217,7 @@
 
   /* --------------------------------------------------------------- 音效 */
   const Audio = UG.Audio = {
+    Music: null,
     ctx: null,
     enabled: true,
     master: null,
@@ -222,6 +230,7 @@
         this.master = this.ctx.createGain();
         this.master.gain.value = 0.5;
         this.master.connect(this.ctx.destination);
+        if (UG.Music) { this.Music = UG.Music; this.Music.init(this.ctx, this.master); }
       } catch (e) { this.enabled = false; }
     },
 
@@ -279,6 +288,119 @@
     achieve()  { [784, 988, 1175].forEach((f, i) => this.tone(f, 0.35, 'sine', 0.11, i * 0.1)); },
     victory()  { [523, 659, 784, 1046, 1318].forEach((f, i) => this.tone(f, 0.5, 'triangle', 0.12, i * 0.14)); },
     ui()       { this.tone(660, 0.06, 'square', 0.05, 0, 880); },
+  };
+
+
+  /* --------------------------------------------------------------- 音乐 */
+  /* 极简程序化配乐：低音 + 琶音 + 踩镲，每关不同调式与速度 */
+  const Music = UG.Music = {
+    enabled: true,
+    playing: false,
+    ctx: null,
+    bus: null,
+    step: 0,
+    nextTime: 0,
+    _timer: null,
+    cfg: null,
+
+    presets: {
+      city:    { bpm: 132, root: 110.0, scale: [0, 3, 5, 7, 10], arp: 'square',   bass: 'triangle', hat: 1 },
+      desert:  { bpm: 116, root: 98.0,  scale: [0, 2, 3, 7, 8],   arp: 'sawtooth', bass: 'sine',     hat: 1 },
+      snow:    { bpm: 124, root: 130.8, scale: [0, 2, 3, 7, 9],   arp: 'triangle', bass: 'sine',     hat: 1 },
+      volcano: { bpm: 146, root: 92.5,  scale: [0, 1, 5, 6, 8],   arp: 'sawtooth', bass: 'square',   hat: 1 },
+      space:   { bpm: 104, root: 103.8, scale: [0, 3, 5, 6, 10],  arp: 'sine',     bass: 'triangle', hat: 1 },
+    },
+
+    init(ctx, master) {
+      this.ctx = ctx;
+      this.master = master;
+      this.bus = ctx.createGain();
+      this.bus.gain.value = 0.16;
+      this.bus.connect(master);
+    },
+
+    setEnabled(on) {
+      this.enabled = on;
+      if (this.bus) this.bus.gain.value = on ? 0.16 : 0;
+      if (!on) this.stop();
+    },
+
+    start(theme) {
+      if (!this.ctx) return;
+      this.cfg = this.presets[theme] || this.presets.city;
+      if (this.playing) return;
+      this.playing = true;
+      this.step = 0;
+      this.nextTime = this.ctx.currentTime + 0.1;
+      this._timer = setInterval(() => this._schedule(), 25);
+    },
+
+    stop() {
+      this.playing = false;
+      if (this._timer) { clearInterval(this._timer); this._timer = null; }
+    },
+
+    _note(freq, t, dur, type, vol) {
+      const o = this.ctx.createOscillator();
+      const g = this.ctx.createGain();
+      o.type = type;
+      o.frequency.setValueAtTime(freq, t);
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(vol, t + 0.012);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      o.connect(g); g.connect(this.bus);
+      o.start(t); o.stop(t + dur + 0.02);
+    },
+
+    _hat(t, vol) {
+      const n = Math.floor(this.ctx.sampleRate * 0.04);
+      const buf = this.ctx.createBuffer(1, n, this.ctx.sampleRate);
+      const d = buf.getChannelData(0);
+      for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / n);
+      const src = this.ctx.createBufferSource(); src.buffer = buf;
+      const f = this.ctx.createBiquadFilter();
+      f.type = 'highpass'; f.frequency.value = 6000;
+      const g = this.ctx.createGain();
+      g.gain.setValueAtTime(vol, t);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.04);
+      src.connect(f); f.connect(g); g.connect(this.bus);
+      src.start(t);
+    },
+
+    _schedule() {
+      if (!this.playing) return;
+      const spb = 60 / this.cfg.bpm / 4;          /* 十六分音符 */
+      while (this.nextTime < this.ctx.currentTime + 0.14) {
+        this._playStep(this.step, this.nextTime, spb);
+        this.nextTime += spb;
+        this.step = (this.step + 1) % 32;
+      }
+    },
+
+    _playStep(step, t, spb) {
+      const c = this.cfg;
+      const sc = c.scale;
+
+      /* 低音：每小节 1、3 拍 */
+      if (step % 8 === 0) {
+        const deg = (step / 8) % 2 === 0 ? 0 : 3;
+        this._note(c.root / 2 * Math.pow(2, sc[deg % sc.length] / 12), t, spb * 6, c.bass, 0.3);
+      }
+
+      /* 琶音：八分音符上行 */
+      if (step % 2 === 0) {
+        const i = (step / 2) % 8;
+        const oct = i >= 6 ? 2 : 1;
+        const deg = sc[i % sc.length];
+        this._note(c.root * oct * Math.pow(2, deg / 12), t, spb * 1.5, c.arp, 0.12);
+      }
+
+      /* 踩镲 */
+      if (c.hat && step % 4 === 2) this._hat(t, 0.05);
+
+      /* 每 16 步加一记重拍 */
+      if (step === 0) this._note(c.root * 2, t, spb * 2, 'sine', 0.09);
+    },
   };
 
   /* --------------------------------------------------------------- 粒子 */

@@ -63,6 +63,7 @@
     bestScore: 0,
     cleared: false,
     muted: false,
+    musicOn: true,
   };
 
   function loadSave() {
@@ -125,6 +126,24 @@
     UG.Audio.resume();
   }
 
+  function musicStart() {
+    if (!G.save.musicOn) return;
+    const M = UG.Audio.Music;
+    if (M && G.level) M.start(G.level.theme);
+  }
+  function musicStop() {
+    const M = UG.Audio.Music;
+    if (M) M.stop();
+  }
+  function toggleMusic() {
+    G.save.musicOn = !G.save.musicOn;
+    persist();
+    const M = UG.Audio.Music;
+    if (M) M.setEnabled(G.save.musicOn);
+    if (G.save.musicOn) { ensureAudio(); musicStart(); }
+    toast(G.save.musicOn ? '🎵 音乐已开启' : '🔇 音乐已关闭');
+  }
+
   /* ============================================================
      玩家
      ============================================================ */
@@ -159,6 +178,18 @@
   /* ============================================================
      关卡装载
      ============================================================ */
+  /* 屏幕尺寸变化时重算相机边界，避免宽屏下露出关卡外 */
+  function onViewportChange() {
+    const lv = G.level;
+    if (!lv) return;
+    UG.Camera.minX = 0;
+    UG.Camera.maxX = Math.max(0, lv.width - UG.VIEW.w);
+    if (G.player) {
+      G.camX = clamp(UG.Camera.x, UG.Camera.minX, UG.Camera.maxX);
+      if (G.arenaLocked) G.camX = lv.arenaX;
+    }
+  }
+
   function loadLevel(index) {
     const lv = UG.LEVELS[index];
     G.levelIndex = index;
@@ -384,6 +415,7 @@
     const p = G.player;
     p.alive = false;
     G.state = 'dead';
+    musicStop();
     UG.Audio.explode();
     UG.shake(14, 0.7);
     UG.Particles.burst(p.x, p.y - 26, 40, {
@@ -440,6 +472,7 @@
     G.state = 'playing';
     hideOverlay();
     updateHud();
+    musicStart();
   }
 
   /* ============================================================
@@ -1304,7 +1337,7 @@
 
       // 横向边界
       const minX = G.arenaLocked ? lv.arenaX + 20 : 20;
-      const maxX = G.arenaLocked ? lv.arenaX + 620 : lv.width - 20;
+      const maxX = G.arenaLocked ? lv.arenaX + UG.VIEW.w - 20 : lv.width - 20;
       p.x = clamp(p.x, minX, maxX);
 
       resolveGround(p, dt);
@@ -1366,8 +1399,7 @@
 
     /* 相机 */
     if (G.arenaLocked) {
-      const minA = lv.arenaX, maxA = lv.arenaX;
-      G.camX = lerp(G.camX, minA, 1 - Math.pow(0.004, dt));
+      G.camX = lerp(G.camX, lv.arenaX, 1 - Math.pow(0.004, dt));
     } else {
       UG.Camera.follow(p.x, dt, p.facing * 46);
       G.camX = UG.Camera.x;
@@ -1618,6 +1650,8 @@
         G.levelRevives = 0;
         G.bossDamaged = false;
         syncUi();
+        ensureAudio();
+        musicStart();
         break;
       case 'revive':
         revivePlayer();
@@ -1640,9 +1674,13 @@
       case 'resume':
         G.state = 'playing';
         hideOverlay();
+        musicStart();
         break;
       case 'pause':
         pauseGame();
+        break;
+      case 'music':
+        toggleMusic();
         break;
       case 'fullscreen':
         toggleFullscreen();
@@ -1661,12 +1699,14 @@
   function pauseGame() {
     if (G.state !== 'playing') return;
     G.state = 'paused';
+    musicStop();
     showOverlay(
       '<div class="screen">' +
         '<h2 class="result-title">暂停</h2>' +
         '<p class="result-sub">' + G.level.name + ' · 第 ' + (G.levelIndex + 1) + ' 关</p>' +
         '<div class="menu">' +
           '<button class="btn primary" data-act="resume">继续</button>' +
+          '<button class="btn ghost" data-act="music">' + (G.save.musicOn ? '🎵 音乐：开' : '🔇 音乐：关') + '</button>' +
           '<button class="btn ghost" data-act="fullscreen">切换全屏</button>' +
           '<button class="btn ghost" data-act="title">返回标题</button>' +
         '</div>' +
@@ -1681,6 +1721,7 @@
 
   function showTitle() {
     G.state = 'title';
+    musicStop();
     hideBossBar();
     syncUi();
     const achCount = Object.keys(G.save.achievements).length;
@@ -1693,6 +1734,7 @@
           '<button class="btn primary" data-act="startGame">开始游戏</button>' +
           '<button class="btn" data-act="achievements">成就 ' + achCount + ' / ' + UG.ACHIEVEMENTS.length + '</button>' +
           '<button class="btn ghost" data-act="fullscreen">全屏模式</button>' +
+          '<button class="btn ghost" data-act="music">' + (G.save.musicOn ? '🎵 音乐：开' : '🔇 音乐：关') + '</button>' +
           '<a class="btn ghost" href="bike.html">🚲 自行车动画</a>' +
         '</div>' +
         '<div class="keys">' +
@@ -1768,9 +1810,11 @@
      ============================================================ */
   function boot() {
     UG.Screen.init($('#game'));
+    UG.Screen.onResize = onViewportChange;
     UG.Input.init();
     UG.Audio.init();
     G.save = loadSave();
+    if (UG.Audio.Music) UG.Audio.Music.enabled = G.save.musicOn !== false;
 
     setupTouch();
 

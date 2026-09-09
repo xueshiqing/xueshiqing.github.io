@@ -151,12 +151,12 @@ html, body {
   color: #fff;
 }
 
-/* 右下：动作键 */
+/* 右下：动作键（互不重叠，留出手指间隙） */
 .actions {
   position: relative;
-  width: 190px; height: 168px;
+  width: 214px; height: 176px;
   pointer-events: auto;
-  margin-right: max(4px, env(safe-area-inset-right));
+  margin-right: max(6px, env(safe-area-inset-right));
 }
 .abtn {
   position: absolute;
@@ -172,25 +172,25 @@ html, body {
 .abtn.on { transform: scale(.9); filter: brightness(1.5); }
 
 .abtn.fire {
-  right: 0; bottom: 8px; width: 74px; height: 74px; font-size: 20px;
+  right: 0; bottom: 6px; width: 76px; height: 76px; font-size: 20px;
   background: radial-gradient(circle at 35% 30%, #5aa9ff, #1b56b8);
   border-color: rgba(150, 210, 255, .6);
   box-shadow: 0 0 18px rgba(60, 140, 255, .45);
 }
 .abtn.beam {
-  right: 80px; bottom: 46px; width: 64px; height: 64px;
+  right: 88px; bottom: 58px; width: 62px; height: 62px;
   background: radial-gradient(circle at 35% 30%, #ffd45e, #c9860c);
   border-color: rgba(255, 225, 140, .6);
   box-shadow: 0 0 18px rgba(255, 190, 60, .45);
 }
 .abtn.jump {
-  left: 0; bottom: 62px; width: 60px; height: 60px;
+  left: 0; bottom: 66px; width: 60px; height: 60px;
   background: radial-gradient(circle at 35% 30%, #7ef0c0, #128a5c);
   border-color: rgba(150, 255, 210, .55);
   box-shadow: 0 0 16px rgba(60, 230, 170, .4);
 }
 .abtn.dash {
-  left: 68px; bottom: 8px; width: 56px; height: 56px;
+  left: 66px; bottom: 0; width: 54px; height: 54px;
   background: radial-gradient(circle at 35% 30%, #c79bff, #6a35c4);
   border-color: rgba(210, 180, 255, .55);
   box-shadow: 0 0 16px rgba(150, 90, 255, .4);
@@ -368,11 +368,11 @@ html, body {
   .dbtn { width: 50px; height: 50px; font-size: 15px; border-radius: 13px; }
   .dbtn.up { left: 49px; } .dbtn.left { top: 49px; }
   .dbtn.right { left: 98px; top: 49px; } .dbtn.down { left: 49px; top: 98px; }
-  .actions { width: 168px; height: 148px; }
-  .abtn.fire { width: 64px; height: 64px; font-size: 18px; }
-  .abtn.beam { width: 56px; height: 56px; right: 68px; bottom: 40px; }
-  .abtn.jump { width: 54px; height: 54px; bottom: 54px; }
-  .abtn.dash { width: 50px; height: 50px; left: 60px; }
+  .actions { width: 186px; height: 154px; }
+  .abtn.fire { width: 66px; height: 66px; font-size: 18px; bottom: 4px; }
+  .abtn.beam { width: 54px; height: 54px; right: 76px; bottom: 50px; }
+  .abtn.jump { width: 54px; height: 54px; bottom: 58px; }
+  .abtn.dash { width: 48px; height: 48px; left: 58px; bottom: 0; }
   .hud { font-size: 12px; }
   .hud-stat { padding: 4px 8px; }
 }
