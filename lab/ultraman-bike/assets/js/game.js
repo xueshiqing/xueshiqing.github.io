@@ -1813,24 +1813,28 @@
     syncUi();
     const achCount = Object.keys(G.save.achievements).length;
     showOverlay(
-      '<div class="screen">' +
-        '<h1 class="title-logo">奥特曼</h1>' +
-        '<p class="title-sub">ULTRA GUARDIAN</p>' +
-        '<p class="title-desc">光之战士降临，五关怪兽与 BOSS 等着你。<br>远程弹幕、蓄力光波、无限复活——看看你第几次才能通关。</p>' +
-        '<div class="menu">' +
-          '<button class="btn primary" data-act="startGame">开始游戏</button>' +
-          '<button class="btn" data-act="achievements">成就 ' + achCount + ' / ' + UG.ACHIEVEMENTS.length + '</button>' +
-          '<button class="btn ghost" data-act="fullscreen">全屏模式</button>' +
-          '<button class="btn ghost" data-act="music">' + (G.save.musicOn ? '🎵 音乐：开' : '🔇 音乐：关') + '</button>' +
-          '<a class="btn ghost" href="https://github.com/xueshiqing/xueshiqing.github.io/issues" target="_blank" rel="noopener">💬 反馈 / 提 Issue</a>' +
+      '<div class="screen screen--title">' +
+        '<div class="title-info">' +
+          '<h1 class="title-logo">奥特曼</h1>' +
+          '<p class="title-sub">ULTRA GUARDIAN</p>' +
+          '<p class="title-desc">五关怪兽与 BOSS，远程弹幕与蓄力光波。<br>无限复活——看看你第几次才能通关。</p>' +
+          '<div class="keys">' +
+            '<span><kbd>← →</kbd>移动</span><span><kbd>空格</kbd>跳跃（可二段）</span>' +
+            '<span><kbd>↑</kbd>向上射击</span><span><kbd>↓</kbd>趴下／空中下射</span>' +
+            '<span><kbd>J</kbd>能量弹</span><span><kbd>K</kbd>蓄力光波（需体力）</span>' +
+            '<span><kbd>L</kbd>冲刺</span><span><kbd>P</kbd>暂停</span>' +
+          '</div>' +
         '</div>' +
-        '<div class="keys">' +
-          '<span><kbd>← →</kbd>移动</span><span><kbd>空格</kbd>跳跃（可二段）</span>' +
-          '<span><kbd>↑</kbd>向上射击</span><span><kbd>↓</kbd>趴下／空中下射</span>' +
-          '<span><kbd>J</kbd>能量弹</span><span><kbd>K</kbd>蓄力光波（需体力）</span>' +
-          '<span><kbd>L</kbd>冲刺</span><span><kbd>P</kbd>暂停</span>' +
+        '<div class="title-menu">' +
+          '<div class="menu">' +
+            '<button class="btn primary" data-act="startGame">开始游戏</button>' +
+            '<button class="btn" data-act="achievements">成就 ' + achCount + ' / ' + UG.ACHIEVEMENTS.length + '</button>' +
+            '<button class="btn ghost" data-act="fullscreen">全屏模式</button>' +
+            '<button class="btn ghost" data-act="music">' + (G.save.musicOn ? '🎵 音乐：开' : '🔇 音乐：关') + '</button>' +
+            '<a class="btn ghost" href="https://github.com/xueshiqing/xueshiqing.github.io/issues" target="_blank" rel="noopener">💬 反馈 / 提 Issue</a>' +
+          '</div>' +
+          '<p class="title-tip">支持键盘与触屏 · 手机横屏体验最佳</p>' +
         '</div>' +
-        '<p class="result-sub" style="margin-top:20px;font-size:12px">手机端请横屏，左下方向键 · 右下动作键</p>' +
       '</div>'
     );
   }
@@ -1959,7 +1963,10 @@
     });
 
     // 首次交互解锁音频
-    const unlockAudio = () => { ensureAudio(); };
+    /* 首次点击任意位置：解锁音频 + 请求全屏。
+       放在这里而不是「开始游戏」里，是为了让浏览器的全屏提示在标题页就弹完，
+       不会盖住进入关卡后的居中按钮。 */
+    const unlockAudio = () => { ensureAudio(); tryAutoFullscreen(); };
     window.addEventListener('pointerdown', unlockAudio, { once: true });
     window.addEventListener('keydown', unlockAudio, { once: true });
 
