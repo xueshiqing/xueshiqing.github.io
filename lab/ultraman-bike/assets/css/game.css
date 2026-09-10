@@ -275,6 +275,16 @@ html, body {
   color: var(--ink-dim);
   font-weight: 600;
 }
+/* 全屏切换：用游戏主色青蓝（同计时器 / 光波），与蓝色主按钮「开始游戏」、
+   金色「成就」都能一眼区分，方便在菜单里高优先找到。
+   必须定义在 .btn.ghost 之后：两者优先级相同，靠顺序决定胜负。 */
+.btn.accent {
+  background: linear-gradient(180deg, #2bb8e6, #0b6a93);
+  border-color: rgba(150, 235, 255, .7);
+  color: #eafcff;
+  box-shadow: 0 10px 26px -12px rgba(60, 210, 255, .95), inset 0 1px 0 rgba(255, 255, 255, .3);
+}
+.btn.accent:hover { border-color: rgba(190, 245, 255, .95); }
 .btn.small { min-width: 0; padding: 10px 18px; font-size: 13px; }
 
 /* 注意：这个类总与 .menu 同时使用，而 .menu 是 flex-direction:column，
