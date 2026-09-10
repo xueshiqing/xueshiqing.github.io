@@ -30,7 +30,8 @@ html, body {
   -webkit-user-select: none;
 }
 
-#app { position: fixed; inset: 0; overflow: hidden; }
+/* 位置和尺寸由 JS 按 visualViewport 精确设置，避免被浏览器地址栏遮挡 */
+#app { position: fixed; top: 0; left: 0; width: 100%; height: 100%; overflow: hidden; }
 
 /* 画布：JS 设置宽高，居中 */
 #game {
@@ -450,3 +451,44 @@ html, body {
 
 /* 暂停按钮（HUD 右侧） */
 .hud-right .icon-btn { width: 34px; height: 34px; }
+
+/* ---------------- 矮视口适配 ----------------
+   手机横屏时浏览器地址栏会吃掉 40~60px 高度，控件按高度自动收缩，
+   保证方向键与动作键始终完整落在可视区内，不需要滚动查找。 */
+@media (max-height: 430px) {
+  .dpad { width: 144px; height: 144px; }
+  .dbtn { width: 50px; height: 50px; font-size: 15px; border-radius: 13px; }
+  .dbtn.up    { left: 47px; top: 0; }
+  .dbtn.left  { left: 0; top: 47px; }
+  .dbtn.right { left: 94px; top: 47px; }
+  .dbtn.down  { left: 47px; top: 94px; }
+  .dpad-hub { width: 30px; height: 30px; }
+
+  .actions { width: 188px; height: 152px; }
+  .abtn.fire { width: 64px; height: 64px; font-size: 17px; right: 0; bottom: 4px; }
+  .abtn.beam { width: 52px; height: 52px; right: 74px; bottom: 48px; }
+  .abtn.jump { width: 52px; height: 52px; left: 0; bottom: 56px; }
+  .abtn.dash { width: 46px; height: 46px; left: 56px; bottom: 0; }
+}
+
+@media (max-height: 360px) {
+  .dpad { width: 126px; height: 126px; }
+  .dbtn { width: 44px; height: 44px; font-size: 13px; border-radius: 11px; }
+  .dbtn.up    { left: 41px; top: 0; }
+  .dbtn.left  { left: 0; top: 41px; }
+  .dbtn.right { left: 82px; top: 41px; }
+  .dbtn.down  { left: 41px; top: 82px; }
+  .dpad-hub { width: 26px; height: 26px; }
+
+  .actions { width: 166px; height: 134px; }
+  .abtn.fire { width: 56px; height: 56px; font-size: 15px; right: 0; bottom: 2px; }
+  .abtn.beam { width: 46px; height: 46px; right: 64px; bottom: 42px; }
+  .abtn.jump { width: 46px; height: 46px; left: 0; bottom: 48px; }
+  .abtn.dash { width: 40px; height: 40px; left: 50px; bottom: 0; }
+
+  .hud { font-size: 11px; }
+  .timer { width: 38px; height: 38px; flex-basis: 38px; }
+  .hud-stat { padding: 3px 7px; }
+  .hud-level { font-size: 12px; }
+  .hud-stamina { width: 88px; height: 5px; }
+}

@@ -1722,6 +1722,7 @@
     switch (act) {
       case 'startGame':
         ensureAudio();
+        tryAutoFullscreen();
         G.score = 0; G.revives = 0; G.bestCombo = 0; G.totalKills = 0;
         G.beamKills = 0; G.cratesSmashed = 0;
         G.runStart = Date.now();
@@ -1857,9 +1858,37 @@
     );
   }
 
+  let _fsTried = 0;
+  function isFullscreen() {
+    return !!(document.fullscreenElement || document.webkitFullscreenElement);
+  }
+
+  /* 自动全屏：Fullscreen API 必须由用户手势触发，无法在旋转屏幕时自动调用，
+     所以挂在「开始游戏」这次点击上。iOS Safari 不支持该 API，静默跳过。 */
+  function tryAutoFullscreen() {
+    if (!isTouchDevice() || isFullscreen()) return;
+    if (Date.now() - _fsTried < 10000) return;
+    _fsTried = Date.now();
+    const el = document.documentElement;
+    const req = el.requestFullscreen || el.webkitRequestFullscreen;
+    if (!req) return;
+    try {
+      const p = req.call(el, { navigationUI: 'hide' });
+      if (p && p.then) {
+        p.then(() => {
+          if (screen.orientation && screen.orientation.lock) {
+            screen.orientation.lock('landscape').catch(() => {});
+          }
+          setTimeout(() => UG.Screen.resize(), 320);
+          toast('已进入全屏 · 再次点击可退出');
+        }).catch(() => {});
+      }
+    } catch (e) { /* 忽略 */ }
+  }
+
   function toggleFullscreen() {
     const el = document.documentElement;
-    if (!document.fullscreenElement) {
+    if (!isFullscreen()) {
       (el.requestFullscreen || el.webkitRequestFullscreen || function () {}).call(el);
       if (screen.orientation && screen.orientation.lock) {
         screen.orientation.lock('landscape').catch(() => {});

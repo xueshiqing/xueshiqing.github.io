@@ -40,6 +40,21 @@
   /* 逻辑视口：高度固定 360，宽度随屏幕宽高比自适应（宽屏能看到更多关卡内容） */
   UG.VIEW = { w: 640, h: 360, minW: 640, maxW: 960 };
 
+  /* 移动端 position:fixed 的 inset:0 用的是「布局视口」（相当于地址栏收起时的大小），
+     而地址栏实际盖住的是「视觉视口」。用 visualViewport 拿到真正可见的区域，
+     否则底部触屏按钮会被地址栏挡在可视范围之外。 */
+  function viewportSize() {
+    const vv = window.visualViewport;
+    if (vv && vv.width > 0 && vv.height > 0) {
+      return {
+        w: Math.round(vv.width), h: Math.round(vv.height),
+        top: Math.round(vv.offsetTop), left: Math.round(vv.offsetLeft),
+      };
+    }
+    return { w: window.innerWidth, h: window.innerHeight, top: 0, left: 0 };
+  }
+  UG.viewportSize = viewportSize;
+
   const Screen = UG.Screen = {
     canvas: null,
     ctx: null,
@@ -49,13 +64,36 @@
     init(canvas) {
       this.canvas = canvas;
       this.ctx = canvas.getContext('2d', { alpha: false });
+      this.app = document.getElementById('app');
+      this._last = null;
       this.resize();
-      window.addEventListener('resize', () => this.resize());
-      window.addEventListener('orientationchange', () => setTimeout(() => this.resize(), 260));
+      const kick = () => this.resize();
+      window.addEventListener('resize', kick);
+      window.addEventListener('orientationchange', () => setTimeout(kick, 260));
+      if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', kick);
+        window.visualViewport.addEventListener('scroll', kick);
+      }
+      /* 地址栏收起/展开时部分浏览器不发事件，低频兜底（尺寸没变会直接返回） */
+      setInterval(kick, 1000);
     },
 
     resize() {
-      const vw = window.innerWidth, vh = window.innerHeight;
+      const vp = viewportSize();
+      const vw = vp.w, vh = vp.h;
+
+      /* 尺寸没变就不重排，避免每秒兜底轮询造成无谓开销 */
+      if (this._last && this._last.w === vw && this._last.h === vh &&
+          this._last.top === vp.top && this._last.left === vp.left) return;
+      this._last = vp;
+
+      /* 把 app 容器贴合到真正可见的区域 */
+      if (this.app) {
+        this.app.style.top = vp.top + 'px';
+        this.app.style.left = vp.left + 'px';
+        this.app.style.width = vw + 'px';
+        this.app.style.height = vh + 'px';
+      }
 
       /* 按屏幕比例决定逻辑宽度：越宽的屏幕看到越多，而不是两侧留白 */
       const aspect = vw / Math.max(1, vh);
