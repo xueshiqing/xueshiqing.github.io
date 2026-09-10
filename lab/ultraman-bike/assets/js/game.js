@@ -1938,7 +1938,7 @@
 
     setupTouch();
 
-    beamBtn = document.querySelector('.abtn.beam');
+    beamBtn = document.querySelector('.sec[data-key="beam"]');
     staminaFill = $('#staminaFill');
     staminaBarEl = $('#staminaBar');
 

@@ -41,21 +41,39 @@
     </div>
   </div>
 
-  <!-- ============ 触屏控制 ============ -->
+  <!-- ============ 触屏控制 ============
+       左下 / 右下各是一块四等分扇形触控区：
+       扇形内任意位置按下即触发对应方向或动作，有效区域远大于按钮本身。 -->
   <div id="touch" class="touch" hidden>
-    <div class="dpad" id="dpad">
-      <button class="dbtn up"    data-key="up"    aria-label="上/跳跃">▲</button>
-      <button class="dbtn left"  data-key="left"  aria-label="左">◀</button>
-      <button class="dbtn right" data-key="right" aria-label="右">▶</button>
-      <button class="dbtn down"  data-key="down"  aria-label="下">▼</button>
-      <span class="dpad-hub"></span>
+
+    <div class="pad pad--move" id="padMove">
+      <svg class="pad-svg" viewBox="0 0 200 200" aria-hidden="true">
+        <path class="sec" data-key="up"    d="M100,100 L32.1,32.1   A96,96 0 0 1 167.9,32.1   Z"/>
+        <path class="sec" data-key="right" d="M100,100 L167.9,32.1   A96,96 0 0 1 167.9,167.9  Z"/>
+        <path class="sec" data-key="down"  d="M100,100 L167.9,167.9  A96,96 0 0 1 32.1,167.9   Z"/>
+        <path class="sec" data-key="left"  d="M100,100 L32.1,167.9   A96,96 0 0 1 32.1,32.1    Z"/>
+        <circle class="pad-hub" cx="100" cy="100" r="15"/>
+        <text class="pad-lab" data-lab="up"    x="100" y="44">▲</text>
+        <text class="pad-lab" data-lab="left"  x="44"  y="100">◀</text>
+        <text class="pad-lab" data-lab="right" x="156" y="100">▶</text>
+        <text class="pad-lab" data-lab="down"  x="100" y="156">▼</text>
+      </svg>
     </div>
-    <div class="actions">
-      <button class="abtn jump" data-key="jump">跳</button>
-      <button class="abtn dash" data-key="dash">闪</button>
-      <button class="abtn fire" data-key="fire">攻</button>
-      <button class="abtn beam" data-key="beam">波</button>
+
+    <div class="pad pad--act" id="padAct">
+      <svg class="pad-svg" viewBox="0 0 200 200" aria-hidden="true">
+        <path class="sec" data-key="beam" d="M100,100 L32.1,32.1   A96,96 0 0 1 167.9,32.1   Z"/>
+        <path class="sec" data-key="fire" d="M100,100 L167.9,32.1   A96,96 0 0 1 167.9,167.9  Z"/>
+        <path class="sec" data-key="jump" d="M100,100 L167.9,167.9  A96,96 0 0 1 32.1,167.9   Z"/>
+        <path class="sec" data-key="dash" d="M100,100 L32.1,167.9   A96,96 0 0 1 32.1,32.1    Z"/>
+        <circle class="pad-hub" cx="100" cy="100" r="15"/>
+        <text class="pad-lab" data-lab="beam" x="100" y="46">波</text>
+        <text class="pad-lab" data-lab="dash" x="46"  y="100">闪</text>
+        <text class="pad-lab" data-lab="fire" x="154" y="100">攻</text>
+        <text class="pad-lab" data-lab="jump" x="100" y="154">跳</text>
+      </svg>
     </div>
+
   </div>
 
   <!-- ============ 覆盖层 ============ -->

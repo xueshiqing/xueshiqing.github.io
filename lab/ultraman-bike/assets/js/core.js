@@ -95,6 +95,10 @@
         this.app.style.height = vh + 'px';
       }
 
+      /* 扇形触控区尺寸：2/3 屏高，且不超过 46% 屏宽（保证两侧不相接） */
+      const padSize = Math.round(Math.min(vh * 0.66, vw * 0.46));
+      document.documentElement.style.setProperty('--pad-size', padSize + 'px');
+
       /* 按屏幕比例决定逻辑宽度：越宽的屏幕看到越多，而不是两侧留白 */
       const aspect = vw / Math.max(1, vh);
       UG.VIEW.w = Math.round(clamp(UG.VIEW.h * aspect, UG.VIEW.minW, UG.VIEW.maxW));
@@ -174,72 +178,96 @@
       });
     },
 
-    /** 绑定虚拟按键 */
+    /** 绑定四等分扇形触控区 */
     bindTouch(root) {
-      root.querySelectorAll('[data-key]').forEach((btn) => {
-        const key = btn.dataset.key;
-        const on = (e) => {
-          e.preventDefault();
-          if (!this.held[key]) this._pressed[key] = true;
-          this._touch[key] = true;
-          this.held[key] = true;
-          btn.classList.add('on');
-          if (this.onAnyKey) this.onAnyKey(key);
-        };
-        const off = (e) => {
-          if (e) e.preventDefault();
-          this._touch[key] = false;
-          this.held[key] = false;
-          btn.classList.remove('on');
-        };
-        btn.addEventListener('pointerdown', on);
-        btn.addEventListener('pointerup', off);
-        btn.addEventListener('pointercancel', off);
-        btn.addEventListener('pointerleave', (e) => { if (this._touch[key]) off(e); });
-        btn.addEventListener('contextmenu', (e) => e.preventDefault());
+      this.bindPad(root.querySelector('#padMove'), {
+        multi: false,   /* 方向区只保留最后一次按下的扇区 */
+        dirMap: { up: 'up', right: 'right', down: 'down', left: 'left' },
       });
-      // 触屏滑动方向键（摇杆式）：在 dpad 区域内拖动也能转向
-      const dpad = root.querySelector('#dpad');
-      if (dpad) {
-        const keys = ['up', 'down', 'left', 'right'];
-        let active = null;
-        const setAll = (list) => {
-          keys.forEach((k) => {
-            const btn = dpad.querySelector('[data-key="' + k + '"]');
-            const want = list.includes(k);
-            if (want && !this.held[k]) this._pressed[k] = true;
-            this.held[k] = want;
-            this._touch[k] = want;
-            if (btn) btn.classList.toggle('on', want);
-          });
-        };
-        const update = (e) => {
-          const r = dpad.getBoundingClientRect();
-          const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
-          const dx = e.clientX - cx, dy = e.clientY - cy;
-          const dead = r.width * 0.16;
-          const out = [];
-          if (Math.hypot(dx, dy) > dead) {
-            if (Math.abs(dx) > Math.abs(dy)) out.push(dx < 0 ? 'left' : 'right');
-            else out.push(dy < 0 ? 'up' : 'down');
-          }
-          setAll(out);
-        };
-        dpad.addEventListener('pointerdown', (e) => {
-          e.preventDefault();
-          active = e.pointerId;
-          dpad.setPointerCapture(e.pointerId);
-          update(e);
-        });
-        dpad.addEventListener('pointermove', (e) => { if (active === e.pointerId) update(e); });
-        const end = (e) => {
-          if (active !== e.pointerId) return;
-          active = null;
-          setAll([]);
-        };
-        dpad.addEventListener('pointerup', end);
-        dpad.addEventListener('pointercancel', end);
-      }
+      this.bindPad(root.querySelector('#padAct'), {
+        multi: true,    /* 动作区支持多指同时按不同扇区 */
+        dirMap: { up: 'beam', right: 'fire', down: 'jump', left: 'dash' },
+      });
+    },
+
+    /**
+     * @param el           扇形触控区容器
+     * @param opts.multi   true = 允许多根手指各按一个扇区
+     * @param opts.dirMap  方向 -> 按键名（左右两侧扇区含义不同）
+     */
+    bindPad(el, opts) {
+      if (!el) return;
+      const multi = !!(opts && opts.multi);
+      const dirMap = (opts && opts.dirMap) || { up: 'up', right: 'right', down: 'down', left: 'left' };
+      const active = new Map();          /* pointerId -> key */
+
+      const paint = (key, on) => {
+        if (!key) return;
+        const sec = el.querySelector('.sec[data-key="' + key + '"]');
+        const lab = el.querySelector('.pad-lab[data-lab="' + key + '"]');
+        if (sec) sec.classList.toggle('on', on);
+        if (lab) lab.classList.toggle('on', on);
+      };
+
+      const setKey = (key, on) => {
+        if (!key) return;
+        if (on && !this.held[key]) this._pressed[key] = true;
+        this.held[key] = on;
+        this._touch[key] = on;
+        paint(key, on);
+      };
+
+      /* 触点落在哪个扇区：以区域中心为原点算角度，沿半径方向无限延展，
+         所以扇形外的延长方向同样有效，触控面积远大于图形本身。 */
+      const keyAt = (e) => {
+        const r = el.getBoundingClientRect();
+        const dx = e.clientX - (r.left + r.width / 2);
+        const dy = e.clientY - (r.top + r.height / 2);
+        if (Math.hypot(dx, dy) < r.width * 0.09) return null;   /* 中心死区 */
+        const a = Math.atan2(dy, dx);
+        let dir;
+        if (a >= -Math.PI * 0.75 && a < -Math.PI * 0.25) dir = 'up';
+        else if (a >= -Math.PI * 0.25 && a <  Math.PI * 0.25) dir = 'right';
+        else if (a >=  Math.PI * 0.25 && a <  Math.PI * 0.75) dir = 'down';
+        else dir = 'left';
+        return dirMap[dir] || null;
+      };
+
+      const onDown = (e) => {
+        e.preventDefault();
+        const k = keyAt(e);
+        if (!multi) {
+          active.forEach((old, id) => { setKey(old, false); });
+          active.clear();
+        }
+        active.set(e.pointerId, k);
+        setKey(k, true);
+        try { el.setPointerCapture(e.pointerId); } catch (err) { /* 忽略 */ }
+        if (this.onAnyKey && k) this.onAnyKey(k);
+      };
+
+      const onMove = (e) => {
+        if (!active.has(e.pointerId)) return;
+        const k = keyAt(e);
+        const old = active.get(e.pointerId);
+        if (k === old) return;
+        setKey(old, false);
+        active.set(e.pointerId, k);
+        setKey(k, true);
+      };
+
+      const onUp = (e) => {
+        if (!active.has(e.pointerId)) return;
+        setKey(active.get(e.pointerId), false);
+        active.delete(e.pointerId);
+      };
+
+      el.addEventListener('pointerdown', onDown);
+      el.addEventListener('pointermove', onMove);
+      el.addEventListener('pointerup', onUp);
+      el.addEventListener('pointercancel', onUp);
+      el.addEventListener('lostpointercapture', onUp);
+      el.addEventListener('contextmenu', (e) => e.preventDefault());
     },
 
     down(k) { return !!this.held[k]; },
