@@ -80,29 +80,24 @@
 
     resize() {
       const vp = viewportSize();
-      const vw = vp.w, vh = vp.h;
+      /* 画布按「页面区域」（布局视口）缩放 —— 填满整个视口才不会露黑条；
+         被浏览器 UI 遮住的高度另算，只用来把触屏控件往上让。 */
+      const vw = window.innerWidth || vp.w;
+      const vh = window.innerHeight || vp.h;
 
       /* 尺寸没变就不重排，避免每秒兜底轮询造成无谓开销 */
-      if (this._last && this._last.w === vw && this._last.h === vh &&
-          this._last.top === vp.top && this._last.left === vp.left) return;
-      this._last = vp;
+      const key = vw + 'x' + vh + '@' + vp.top + ',' + vp.h;
+      if (this._last === key) return;
+      this._last = key;
 
-      /* 分层处理：app 容器铺满整个「页面区域」（布局视口），
-         避免非全屏时底部露出一条页面背景色的黑条；
-         而画布 / HUD / 触屏控件则对齐到「真正可见区域」（视觉视口），
-         保证不会被浏览器地址栏或底部工具栏挡住。 */
-      const layoutW = Math.max(vw, window.innerWidth);
-      const layoutH = Math.max(vp.top + vh, window.innerHeight);
-      if (this.app) {
-        this.app.style.top = '0px';
-        this.app.style.left = '0px';
-        this.app.style.width = layoutW + 'px';
-        this.app.style.height = layoutH + 'px';
-      }
-      const root = document.documentElement;
-      root.style.setProperty('--stage-top', vp.top + 'px');
-      root.style.setProperty('--stage-h', vh + 'px');
-      root.style.setProperty('--stage-w', vw + 'px');
+      /* app 容器固定铺满整个视口（CSS inset:0）——不要用 JS 按 visualViewport
+         去缩小它：部分浏览器（如地址栏在底部的一些国产浏览器）回报的可视高度
+         小于实际页面区域，一旦按它缩小，下面就会露出一条背景色黑条。
+         这里只把「可能被浏览器 UI 遮挡的高度」算出来，用作触屏控件与弹层的
+         底部安全内边距，保证按钮不会被地址栏压住。 */
+      const occluded = Math.max(0, Math.round(vh - (vp.top + vp.h)));
+      const inset = (occluded > 4 && occluded < vh * 0.5) ? occluded : 0;
+      document.documentElement.style.setProperty('--ui-inset-bottom', inset + 'px');
 
       /* 扇形触控区尺寸：2/3 屏高，且不超过 46% 屏宽（保证两侧不相接） */
       const padSize = Math.round(Math.min(vh * 0.55, vw * 0.46));

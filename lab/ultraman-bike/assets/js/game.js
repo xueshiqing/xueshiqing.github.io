@@ -1828,7 +1828,7 @@
         '<div class="title-menu">' +
           '<div class="menu">' +
             '<button class="btn primary" data-act="startGame">开始游戏</button>' +
-            '<button class="btn" data-act="achievements">成就 ' + achCount + ' / ' + UG.ACHIEVEMENTS.length + '</button>' +
+            '<button class="btn ghost" data-act="achievements">成就 ' + achCount + ' / ' + UG.ACHIEVEMENTS.length + '</button>' +
             '<button class="btn ghost" data-act="fullscreen">全屏模式</button>' +
             '<button class="btn ghost" data-act="music">' + (G.save.musicOn ? '🎵 音乐：开' : '🔇 音乐：关') + '</button>' +
             '<a class="btn ghost" href="https://github.com/xueshiqing/xueshiqing.github.io/issues" target="_blank" rel="noopener">💬 反馈 / 提 Issue</a>' +

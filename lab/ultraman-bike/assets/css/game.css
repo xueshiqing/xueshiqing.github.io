@@ -35,14 +35,13 @@ html, body {
   -webkit-user-select: none;
 }
 
-/* 位置和尺寸由 JS 按 visualViewport 精确设置，避免被浏览器地址栏遮挡 */
-#app { position: fixed; top: 0; left: 0; width: 100%; height: 100%; overflow: hidden; }
+/* 铺满整个视口，由浏览器标准行为决定尺寸（不要用 JS 缩小，否则会露黑条） */
+#app { position: fixed; inset: 0; overflow: hidden; }
 
 /* 画布：JS 设置宽高，居中 */
 #game {
   position: absolute;
-  left: 50%;
-  top: calc(var(--stage-top, 0px) + var(--stage-h, 100%) / 2);   /* 在可见区域内居中 */
+  left: 50%; top: 50%;
   transform: translate(-50%, -50%);
   display: block;
   image-rendering: auto;
@@ -52,8 +51,7 @@ html, body {
 
 /* ---------------- HUD ---------------- */
 .hud {
-  position: absolute; left: 0; right: 0;
-  top: var(--stage-top, 0px); height: var(--stage-h, 100%);
+  position: absolute; inset: 0;
   pointer-events: none;
   padding: max(10px, env(safe-area-inset-top)) max(14px, env(safe-area-inset-right))
            max(10px, env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left));
@@ -140,11 +138,12 @@ html, body {
    整个扇形内部任意位置按下都会触发对应操作，扇区沿半径方向无限延展，
    有效触控面积远大于原来的小圆钮。尺寸由 JS 按可视区计算后写入 --pad-size。 */
 .touch {
-  position: absolute; left: 0; right: 0;
-  top: var(--stage-top, 0px); height: var(--stage-h, 100%);
+  position: absolute; inset: 0;
   pointer-events: none;
   display: flex; align-items: flex-end; justify-content: space-between;
-  padding: 0 max(6px, env(safe-area-inset-right)) max(6px, env(safe-area-inset-bottom)) max(6px, env(safe-area-inset-left));
+  padding: 0 max(6px, env(safe-area-inset-right))
+           calc(max(6px, env(safe-area-inset-bottom)) + var(--ui-inset-bottom, 0px))
+           max(6px, env(safe-area-inset-left));
 }
 
 .pad {
@@ -183,11 +182,14 @@ html, body {
 
 /* ---------------- 覆盖层 ---------------- */
 .overlay {
-  position: absolute; left: 0; right: 0;
-  top: var(--stage-top, 0px); height: var(--stage-h, 100%);
+  position: absolute; inset: 0;
   display: none;
-  align-items: center; justify-content: center;
+  /* 安全居中：内容超出时改为顶部对齐并允许滚动，避免"开始游戏"这类
+     首屏按钮被垂直居中裁掉 */
+  align-items: flex-start; justify-content: center;
   padding: 20px;
+  padding-bottom: calc(20px + var(--ui-inset-bottom, 0px));
+  overflow-y: auto;
   background: radial-gradient(120% 100% at 50% 0%, rgba(10, 18, 38, .72), rgba(3, 5, 12, .9));
   backdrop-filter: blur(3px);
   z-index: 20;
@@ -197,8 +199,8 @@ html, body {
 
 .screen {
   width: min(620px, 100%);
-  max-height: 100%;
-  overflow-y: auto;
+  margin: auto;              /* 上下 auto：放得下时居中，放不下时贴顶 */
+  overflow: visible;
   text-align: center;
   animation: screenIn .28s cubic-bezier(.2, .9, .3, 1.1);
   -webkit-overflow-scrolling: touch;
@@ -431,8 +433,12 @@ html, body {
   .title-desc { font-size: 12.5px; line-height: 1.65; margin-bottom: 0; max-width: none; }
   .keys { margin-top: 12px; gap: 4px 12px; font-size: 11px; }
   .keys kbd { font-size: 10px; padding: 3px 5px; }
-  .menu { gap: 10px; }
-  .btn { padding: 11px 16px; font-size: 13px; min-width: 0; width: 100%; max-width: 260px; }
+  /* 5 个按钮排成两列 3 行，整体高度从 ~215px 压到 ~120px，矮屏也不会溢出 */
+  .title-menu .menu {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: stretch;
+  }
+  .title-menu .menu .btn:first-child { grid-column: 1 / -1; }
+  .btn { padding: 10px 14px; font-size: 12.5px; min-width: 0; width: 100%; max-width: none; }
   .title-tip { margin-top: 12px; font-size: 11px; color: var(--ink-dim); }
   /* 其余弹层也统一缩小，避免出现滚动条 */
   .card-name { font-size: clamp(20px, 4.4vw, 28px); }
@@ -451,7 +457,7 @@ html, body {
   .title-sub { margin-bottom: 8px; }
   .title-desc { font-size: 11.5px; line-height: 1.55; }
   .keys { display: none; }                     /* 手机横屏用不到键盘提示，直接省掉 */
-  .menu { gap: 8px; }
-  .btn { padding: 10px 14px; font-size: 12.5px; width: 100%; max-width: 240px; }
+  .title-menu .menu { gap: 7px; }
+  .btn { padding: 9px 12px; font-size: 12px; width: 100%; max-width: none; }
   .title-tip { margin-top: 8px; font-size: 10.5px; }
 }
