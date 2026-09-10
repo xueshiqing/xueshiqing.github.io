@@ -168,11 +168,13 @@ html, body {
 
 /* 只保留内部四分隔线：径向渐变，靠近圆心清晰、到边缘淡出 */
 .pad-lines { fill: none; stroke-width: 2; stroke-linecap: round; }
+/* 中心点与文字标签：静止时只做「这里有东西」的暗示，按下才点亮成白色，
+   把遮挡降到最低（触点命中判定只依赖扇区 path，与标签大小/透明度无关） */
 .pad-dot { fill: rgba(160, 205, 255, .4); }
-.pad--act .pad-dot { fill: rgba(255, 225, 150, .4); }
+.pad--act .pad-dot { fill: rgba(255, 225, 150, .3); }
 
 .pad-lab {
-  fill: rgba(228, 240, 255, .62);
+  fill: rgba(228, 240, 255, .28);
   font: 700 26px var(--font);
   text-anchor: middle;
   dominant-baseline: middle;
@@ -181,6 +183,14 @@ html, body {
 }
 .pad-lab.on { fill: #ffffff; }
 .pad--act .pad-lab { font-size: 24px; }
+
+/* 左侧方向键：更淡一档，仅微微可见，避免压住主角与怪物
+   （方向盘的三角比右侧的功能字更容易挡住战场，所以单独降一档） */
+#padMove .pad-lab { fill: rgba(228, 240, 255, .15); }
+#padMove .pad-dot { fill: rgba(160, 205, 255, .18); }
+/* 上面的 ID 选择器优先级高于 .pad-lab.on，必须显式补一条，
+   否则按下方向键时三角不会点亮，失去反馈 */
+#padMove .pad-lab.on { fill: #ffffff; }
 
 /* ---------------- 覆盖层 ---------------- */
 .overlay {
