@@ -87,16 +87,25 @@
           this._last.top === vp.top && this._last.left === vp.left) return;
       this._last = vp;
 
-      /* 把 app 容器贴合到真正可见的区域 */
+      /* 分层处理：app 容器铺满整个「页面区域」（布局视口），
+         避免非全屏时底部露出一条页面背景色的黑条；
+         而画布 / HUD / 触屏控件则对齐到「真正可见区域」（视觉视口），
+         保证不会被浏览器地址栏或底部工具栏挡住。 */
+      const layoutW = Math.max(vw, window.innerWidth);
+      const layoutH = Math.max(vp.top + vh, window.innerHeight);
       if (this.app) {
-        this.app.style.top = vp.top + 'px';
-        this.app.style.left = vp.left + 'px';
-        this.app.style.width = vw + 'px';
-        this.app.style.height = vh + 'px';
+        this.app.style.top = '0px';
+        this.app.style.left = '0px';
+        this.app.style.width = layoutW + 'px';
+        this.app.style.height = layoutH + 'px';
       }
+      const root = document.documentElement;
+      root.style.setProperty('--stage-top', vp.top + 'px');
+      root.style.setProperty('--stage-h', vh + 'px');
+      root.style.setProperty('--stage-w', vw + 'px');
 
       /* 扇形触控区尺寸：2/3 屏高，且不超过 46% 屏宽（保证两侧不相接） */
-      const padSize = Math.round(Math.min(vh * 0.66, vw * 0.46));
+      const padSize = Math.round(Math.min(vh * 0.55, vw * 0.46));
       document.documentElement.style.setProperty('--pad-size', padSize + 'px');
 
       /* 按屏幕比例决定逻辑宽度：越宽的屏幕看到越多，而不是两侧留白 */

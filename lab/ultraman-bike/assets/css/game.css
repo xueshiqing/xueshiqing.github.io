@@ -41,7 +41,8 @@ html, body {
 /* 画布：JS 设置宽高，居中 */
 #game {
   position: absolute;
-  left: 50%; top: 50%;
+  left: 50%;
+  top: calc(var(--stage-top, 0px) + var(--stage-h, 100%) / 2);   /* 在可见区域内居中 */
   transform: translate(-50%, -50%);
   display: block;
   image-rendering: auto;
@@ -51,7 +52,8 @@ html, body {
 
 /* ---------------- HUD ---------------- */
 .hud {
-  position: absolute; inset: 0;
+  position: absolute; left: 0; right: 0;
+  top: var(--stage-top, 0px); height: var(--stage-h, 100%);
   pointer-events: none;
   padding: max(10px, env(safe-area-inset-top)) max(14px, env(safe-area-inset-right))
            max(10px, env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left));
@@ -138,7 +140,8 @@ html, body {
    整个扇形内部任意位置按下都会触发对应操作，扇区沿半径方向无限延展，
    有效触控面积远大于原来的小圆钮。尺寸由 JS 按可视区计算后写入 --pad-size。 */
 .touch {
-  position: absolute; inset: 0;
+  position: absolute; left: 0; right: 0;
+  top: var(--stage-top, 0px); height: var(--stage-h, 100%);
   pointer-events: none;
   display: flex; align-items: flex-end; justify-content: space-between;
   padding: 0 max(6px, env(safe-area-inset-right)) max(6px, env(safe-area-inset-bottom)) max(6px, env(safe-area-inset-left));
@@ -155,22 +158,21 @@ html, body {
 }
 .pad-svg { display: block; width: 100%; height: 100%; overflow: visible; }
 
-.sec {
-  fill: rgba(120, 170, 255, .07);
-  stroke: rgba(150, 200, 255, .3);
-  stroke-width: 1.8;
-  transition: fill .07s linear, stroke .07s linear;
-}
-.sec.on { fill: rgba(79, 214, 255, .34); stroke: rgba(150, 240, 255, .85); stroke-width: 2.4; }
-.pad--act .sec.on { fill: rgba(255, 216, 77, .32); stroke: rgba(255, 235, 170, .9); stroke-width: 2.4; }
-.sec.charging { fill: rgba(255, 228, 130, .3); stroke: rgba(255, 240, 180, .85); }
-.sec.empty { fill: rgba(120, 140, 170, .035); stroke: rgba(140, 170, 200, .08); }
+/* 扇区只做「按下高亮」用，静止时不填充、不描边（不遮挡画面） */
+.sec { fill: transparent; stroke: none; transition: fill .07s linear; }
+.sec.on { fill: rgba(79, 214, 255, .28); }
+.pad--act .sec.on { fill: rgba(255, 216, 77, .26); }
+.sec.charging { fill: rgba(255, 228, 130, .3); }
+.sec.empty { fill: transparent; }
 
-.pad-hub { fill: rgba(10, 16, 30, .16); stroke: rgba(150, 200, 255, .22); stroke-width: 1.5; }
+/* 只保留内部四分隔线：径向渐变，靠近圆心清晰、到边缘淡出 */
+.pad-lines { fill: none; stroke-width: 2; stroke-linecap: round; }
+.pad-dot { fill: rgba(160, 205, 255, .4); }
+.pad--act .pad-dot { fill: rgba(255, 225, 150, .4); }
 
 .pad-lab {
-  fill: rgba(228, 240, 255, .66);
-  font: 700 27px var(--font);
+  fill: rgba(228, 240, 255, .62);
+  font: 700 26px var(--font);
   text-anchor: middle;
   dominant-baseline: middle;
   transition: fill .07s linear;
@@ -181,7 +183,8 @@ html, body {
 
 /* ---------------- 覆盖层 ---------------- */
 .overlay {
-  position: absolute; inset: 0;
+  position: absolute; left: 0; right: 0;
+  top: var(--stage-top, 0px); height: var(--stage-h, 100%);
   display: none;
   align-items: center; justify-content: center;
   padding: 20px;

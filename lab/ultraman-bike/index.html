@@ -42,35 +42,64 @@
   </div>
 
   <!-- ============ 触屏控制 ============
-       左下 / 右下各是一块四等分扇形触控区：
-       扇形内任意位置按下即触发对应方向或动作，有效区域远大于按钮本身。 -->
+       左下 / 右下各一块四等分扇形触控区：以圆心算角度判定扇区，沿半径方向
+       无限延展，扇形内外任意位置按下都会触发对应操作。
+       只画内部四条分隔线（径向渐变到边缘淡出），不画外圈，尽量减少遮挡。 -->
   <div id="touch" class="touch" hidden>
 
     <div class="pad pad--move" id="padMove">
       <svg class="pad-svg" viewBox="0 0 200 200" aria-hidden="true">
+        <defs>
+          <radialGradient id="fadeMove" cx="100" cy="100" r="96" gradientUnits="userSpaceOnUse">
+            <stop offset="0%"   stop-color="#a9d4ff" stop-opacity=".42"/>
+            <stop offset="40%"  stop-color="#a9d4ff" stop-opacity=".2"/>
+            <stop offset="78%"  stop-color="#a9d4ff" stop-opacity=".04"/>
+            <stop offset="100%" stop-color="#a9d4ff" stop-opacity="0"/>
+          </radialGradient>
+        </defs>
         <path class="sec" data-key="up"    d="M100,100 L32.1,32.1   A96,96 0 0 1 167.9,32.1   Z"/>
         <path class="sec" data-key="right" d="M100,100 L167.9,32.1   A96,96 0 0 1 167.9,167.9  Z"/>
         <path class="sec" data-key="down"  d="M100,100 L167.9,167.9  A96,96 0 0 1 32.1,167.9   Z"/>
         <path class="sec" data-key="left"  d="M100,100 L32.1,167.9   A96,96 0 0 1 32.1,32.1    Z"/>
-        <circle class="pad-hub" cx="100" cy="100" r="15"/>
-        <text class="pad-lab" data-lab="up"    x="100" y="44">▲</text>
-        <text class="pad-lab" data-lab="left"  x="44"  y="100">◀</text>
-        <text class="pad-lab" data-lab="right" x="156" y="100">▶</text>
-        <text class="pad-lab" data-lab="down"  x="100" y="156">▼</text>
+        <g class="pad-lines" stroke="url(#fadeMove)">
+          <line x1="100" y1="100" x2="32.1"  y2="32.1"/>
+          <line x1="100" y1="100" x2="167.9" y2="32.1"/>
+          <line x1="100" y1="100" x2="167.9" y2="167.9"/>
+          <line x1="100" y1="100" x2="32.1"  y2="167.9"/>
+        </g>
+        <circle class="pad-dot" cx="100" cy="100" r="3.5"/>
+        <text class="pad-lab" data-lab="up"    x="100" y="46">▲</text>
+        <text class="pad-lab" data-lab="right" x="152" y="100">▶</text>
+        <text class="pad-lab" data-lab="down"  x="100" y="154">▼</text>
+        <text class="pad-lab" data-lab="left"  x="48"  y="100">◀</text>
       </svg>
     </div>
 
     <div class="pad pad--act" id="padAct">
       <svg class="pad-svg" viewBox="0 0 200 200" aria-hidden="true">
+        <defs>
+          <radialGradient id="fadeAct" cx="100" cy="100" r="96" gradientUnits="userSpaceOnUse">
+            <stop offset="0%"   stop-color="#ffe08a" stop-opacity=".42"/>
+            <stop offset="40%"  stop-color="#ffe08a" stop-opacity=".2"/>
+            <stop offset="78%"  stop-color="#ffe08a" stop-opacity=".04"/>
+            <stop offset="100%" stop-color="#ffe08a" stop-opacity="0"/>
+          </radialGradient>
+        </defs>
         <path class="sec" data-key="beam" d="M100,100 L32.1,32.1   A96,96 0 0 1 167.9,32.1   Z"/>
         <path class="sec" data-key="fire" d="M100,100 L167.9,32.1   A96,96 0 0 1 167.9,167.9  Z"/>
         <path class="sec" data-key="jump" d="M100,100 L167.9,167.9  A96,96 0 0 1 32.1,167.9   Z"/>
         <path class="sec" data-key="dash" d="M100,100 L32.1,167.9   A96,96 0 0 1 32.1,32.1    Z"/>
-        <circle class="pad-hub" cx="100" cy="100" r="15"/>
-        <text class="pad-lab" data-lab="beam" x="100" y="46">波</text>
-        <text class="pad-lab" data-lab="dash" x="46"  y="100">闪</text>
-        <text class="pad-lab" data-lab="fire" x="154" y="100">攻</text>
-        <text class="pad-lab" data-lab="jump" x="100" y="154">跳</text>
+        <g class="pad-lines" stroke="url(#fadeAct)">
+          <line x1="100" y1="100" x2="32.1"  y2="32.1"/>
+          <line x1="100" y1="100" x2="167.9" y2="32.1"/>
+          <line x1="100" y1="100" x2="167.9" y2="167.9"/>
+          <line x1="100" y1="100" x2="32.1"  y2="167.9"/>
+        </g>
+        <circle class="pad-dot" cx="100" cy="100" r="3.5"/>
+        <text class="pad-lab" data-lab="beam" x="100" y="48">波</text>
+        <text class="pad-lab" data-lab="fire" x="150" y="100">攻</text>
+        <text class="pad-lab" data-lab="jump" x="100" y="152">跳</text>
+        <text class="pad-lab" data-lab="dash" x="50"  y="100">闪</text>
       </svg>
     </div>
 
