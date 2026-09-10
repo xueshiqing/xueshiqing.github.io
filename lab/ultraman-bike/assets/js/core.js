@@ -99,8 +99,8 @@
       const inset = (occluded > 4 && occluded < vh * 0.5) ? occluded : 0;
       document.documentElement.style.setProperty('--ui-inset-bottom', inset + 'px');
 
-      /* 扇形触控区尺寸：2/3 屏高，且不超过 46% 屏宽（保证两侧不相接） */
-      const padSize = Math.round(Math.min(vh * 0.55, vw * 0.46));
+      /* 扇形触控区尺寸：占 2/3 屏高，且不超过 46% 屏宽（保证两侧不相接） */
+      const padSize = Math.round(Math.min(vh * 0.66, vw * 0.46));
       document.documentElement.style.setProperty('--pad-size', padSize + 'px');
 
       /* 按屏幕比例决定逻辑宽度：越宽的屏幕看到越多，而不是两侧留白 */

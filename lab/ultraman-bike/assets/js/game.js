@@ -273,6 +273,8 @@
     if (p.dashT > 0) {
       p.dashT -= dt;
       p.pose = 'dash';
+      /* 冲刺期间仍然接收跳跃输入，缓存到冲刺结束（否则连按会漏掉） */
+      if (I.pressed('jump')) p.jumpBuffer = JUMP_BUFFER;
       p.vx = p.facing * DASH_SPEED * (0.4 + 0.6 * (p.dashT / DASH_TIME));
       if (Math.random() < 0.7) {
         UG.Particles.spawn({
@@ -1377,16 +1379,23 @@
       if (G.hitStop > 0) { G.hitStop -= dt; dt *= 0.15; }
       acc += dt;
       let guard = 0;
-      while (acc >= STEP && guard++ < 6) { update(STEP); acc -= STEP; }
+      while (acc >= STEP && guard++ < 6) {
+        update(STEP);
+        /* 每个逻辑步之后清理按键边沿：
+           - 一帧跑两步时，第二步不会再看到同一个 pressed，避免一次按键吃掉两段跳
+           - 一帧没跑到逻辑步（高刷屏 dt < STEP）时不会清除，按键保留到下一步 */
+        UG.Input.endFrame();
+        acc -= STEP;
+      }
       if (guard >= 6) acc = 0;
     } else {
       G.t += dt;
       UG.Particles.update(dt);
       UG.Camera.update(dt);
       acc = 0;
+      UG.Input.endFrame();   /* 非游玩状态直接清理，避免按键在弹层里积压 */
     }
     render();
-    UG.Input.endFrame();
   }
 
   function update(dt) {
