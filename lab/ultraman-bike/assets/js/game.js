@@ -1850,7 +1850,7 @@
         '<div class="ach-desc">' + a.desc + '</div></div></div>';
     }).join('');
     showOverlay(
-      '<div class="screen">' +
+      '<div class="screen screen--ach">' +
         '<h2 class="result-title">成就</h2>' +
         '<p class="result-sub">已解锁 ' + got + ' / ' + UG.ACHIEVEMENTS.length + ' · 累计复活 ' + (G.save.totalRevives || 0) + ' 次</p>' +
         '<div class="ach-list">' + list + '</div>' +
